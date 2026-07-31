@@ -244,6 +244,36 @@
     });
   }
 
+  // ---- 30분마다 자동으로 다시 입장 비밀번호를 물어봄 ----
+  var SESSION_LIMIT_MS = 30 * 60 * 1000;
+  var sessionLockTimer = null;
+  function startSessionTimer() {
+    if (sessionLockTimer) clearTimeout(sessionLockTimer);
+    sessionLockTimer = setTimeout(lockApp, SESSION_LIMIT_MS);
+  }
+  function lockApp() {
+    appUnlocked = false;
+    sessionGatePw = null;
+    sessionAdminPw = null;
+    state.mode = "search";
+    state.modal = null;
+    state.selectedIds = {};
+    if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+    if (sessionLockTimer) { clearTimeout(sessionLockTimer); sessionLockTimer = null; }
+    var mr = document.getElementById("modal-root");
+    if (mr) mr.innerHTML = "";
+    renderGate();
+    toast("30분 동안 조작이 없어 다시 로그인해주세요.");
+  }
+
+  // 클릭/입력/터치가 있을 때마다 30분 타이머를 리셋 (조작 없을 때만 카운트다운)
+  function resetSessionTimerIfActive() {
+    if (appUnlocked) startSessionTimer();
+  }
+  document.addEventListener("click", resetSessionTimerIfActive, true);
+  document.addEventListener("keydown", resetSessionTimerIfActive, true);
+  document.addEventListener("touchstart", resetSessionTimerIfActive, { passive: true, capture: true });
+
   // ---- 데이터 로드 (Supabase에서 실시간으로) ----
   var isLoading = false;
   async function fetchProducts(showToastOnFail) {
@@ -413,6 +443,7 @@
         await fetchProducts(true);
         render();
         startAutoRefresh();
+        startSessionTimer();
         return;
       }
       if (result && result.wiped) {
