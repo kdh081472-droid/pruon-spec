@@ -1,0 +1,18 @@
+name: Keep Supabase Awake
+
+on:
+  schedule:
+    # 매주 월/목 오전 3시(UTC, 한국시간 정오)에 자동 실행 - 7일 안에 항상 한 번 이상 핑이 가도록
+    - cron: "0 3 * * 1,4"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase project (read-only, harmless call)
+        run: |
+          curl -s -X POST "https://cvlpxwodxpaokxkgrjrn.supabase.co/rest/v1/rpc/check_admin" \
+            -H "apikey: sb_publishable_cdhnIobwUfvCr4y55hUt1A_iBEqJKt_" \
+            -H "Content-Type: application/json" \
+            -d '{"pw":"__keepalive_ping__"}'
