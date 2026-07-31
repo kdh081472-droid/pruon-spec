@@ -25,6 +25,7 @@
   .header-left { display: flex; gap: 10px; align-items: center; }
   .stamp { width: 34px; height: 34px; border-radius: 8px; background: #B8622B; color: #FAF7F2; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .eyebrow { font-size: 11px; letter-spacing: 0.06em; color: #A69C8C; font-weight: 600; margin-bottom: 2px; }
+  .session-countdown { font-size: 10.5px; color: #C4A48A; margin-top: 3px; font-variant-numeric: tabular-nums; }
   h1 { font-size: 18px; font-weight: 700; line-height: 1.2; }
   .header-btns { display: flex; gap: 7px; }
   .btn-admin { display: flex; align-items: center; gap: 4px; background: #FFF; color: #6B5D4A; border: 1.5px solid #E5DFD3; border-radius: 8px; padding: 8px 11px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
@@ -247,10 +248,29 @@
   // ---- 30분마다 자동으로 다시 입장 비밀번호를 물어봄 ----
   var SESSION_LIMIT_MS = 30 * 60 * 1000;
   var sessionLockTimer = null;
+  var sessionCountdownTimer = null;
+  var sessionDeadline = null;
+
+  function updateCountdownDisplay() {
+    var el = document.getElementById("session-countdown");
+    if (!el || !sessionDeadline) return;
+    var remaining = sessionDeadline - Date.now();
+    if (remaining < 0) remaining = 0;
+    var mins = Math.floor(remaining / 60000);
+    var secs = Math.floor((remaining % 60000) / 1000);
+    el.textContent = "자동 로그아웃까지 " + mins + ":" + (secs < 10 ? "0" : "") + secs;
+  }
+
   function startSessionTimer() {
     if (sessionLockTimer) clearTimeout(sessionLockTimer);
+    sessionDeadline = Date.now() + SESSION_LIMIT_MS;
     sessionLockTimer = setTimeout(lockApp, SESSION_LIMIT_MS);
+    updateCountdownDisplay();
+    if (!sessionCountdownTimer) {
+      sessionCountdownTimer = setInterval(updateCountdownDisplay, 1000);
+    }
   }
+
   function lockApp() {
     appUnlocked = false;
     sessionGatePw = null;
@@ -260,6 +280,8 @@
     state.selectedIds = {};
     if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
     if (sessionLockTimer) { clearTimeout(sessionLockTimer); sessionLockTimer = null; }
+    if (sessionCountdownTimer) { clearInterval(sessionCountdownTimer); sessionCountdownTimer = null; }
+    sessionDeadline = null;
     var mr = document.getElementById("modal-root");
     if (mr) mr.innerHTML = "";
     renderGate();
@@ -469,7 +491,9 @@
     // 헤더
     html += '<header>';
     html += '<div class="header-left"><div class="stamp">' + ICON.pkg + '</div>';
-    html += '<div><div class="eyebrow">제품 스펙 조회</div><h1>제품 · 알당중량 검색</h1></div></div>';
+    html += '<div><div class="eyebrow">제품 스펙 조회</div><h1>제품 · 알당중량 검색</h1>';
+    html += '<div class="session-countdown" id="session-countdown"></div>';
+    html += '</div></div>';
     if (state.mode === "admin") {
       html += '<div class="header-btns">';
       html += '<button class="btn-export" data-act="manualRefresh">' + ICON.refresh + '</button>';
