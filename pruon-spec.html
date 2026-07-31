@@ -252,7 +252,7 @@
     try {
       var res = await db.rpc("get_products", { pw: sessionGatePw });
       if (res.error) {
-        if (showToastOnFail) toast("데이터를 불러오지 못했어요. 인터넷 연결을 확인해주세요.");
+        if (showToastOnFail) toast("데이터 조회 오류: " + (res.error.message || JSON.stringify(res.error)));
         return;
       }
       state.products = (res.data || []).map(function (row) {
@@ -306,7 +306,7 @@
   async function tryAdminLogin(value) {
     try {
       var res = await db.rpc("check_admin", { pw: value });
-      if (res.error) { toast("서버에 연결하지 못했어요."); return false; }
+      if (res.error) { toast("서버 오류: " + (res.error.message || JSON.stringify(res.error))); return false; }
       if (res.data === true) {
         sessionAdminPw = value;
         return true;
@@ -403,7 +403,7 @@
     try {
       var res = await db.rpc("check_gate", { pw: value });
       if (res.error) {
-        toast("서버에 연결하지 못했어요. 인터넷 연결을 확인해주세요.");
+        toast("서버 오류: " + (res.error.message || JSON.stringify(res.error)));
         return;
       }
       var result = res.data;
