@@ -1,0 +1,13 @@
+{
+  "name": "제품 스펙 조회 - 푸르온식품연구소",
+  "short_name": "제품스펙조회",
+  "start_url": "./pruon-spec.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#B8622B",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
