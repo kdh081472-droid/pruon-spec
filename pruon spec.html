@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>제품 스펙 조회</title>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
+  body { background: #FAF7F2; color: #2B2620; }
+  #app { max-width: 480px; margin: 0 auto; padding: 20px 16px 80px; min-height: 100vh; }
+  input, select, button, textarea { font-family: inherit; }
+  ::placeholder { color: #A69C8C; }
+  button { cursor: pointer; }
+
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+  .header-left { display: flex; gap: 10px; align-items: center; }
+  .stamp { width: 34px; height: 34px; border-radius: 8px; background: #B8622B; color: #FAF7F2; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .eyebrow { font-size: 11px; letter-spacing: 0.06em; color: #A69C8C; font-weight: 600; margin-bottom: 2px; }
+  h1 { font-size: 18px; font-weight: 700; line-height: 1.2; }
+  .header-btns { display: flex; gap: 7px; }
+  .btn-admin { display: flex; align-items: center; gap: 4px; background: #FFF; color: #6B5D4A; border: 1.5px solid #E5DFD3; border-radius: 8px; padding: 8px 11px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .btn-add { display: flex; align-items: center; gap: 5px; background: #2B2620; color: #FAF7F2; border: none; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .btn-done { background: #B8622B; color: #FFF; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; }
+  .btn-export { display: flex; align-items: center; gap: 5px; background: #FFF; color: #B8622B; border: 1.5px solid #E4C3AC; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+
+  .admin-banner { display: flex; align-items: center; gap: 6px; background: #F3E6DA; color: #B8622B; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 8px; margin-bottom: 14px; }
+
+  .search-wrap { display: flex; align-items: center; gap: 8px; background: #FFF; border: 1.5px solid #E5DFD3; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+  .search-wrap input { flex: 1; border: none; outline: none; font-size: 15px; background: transparent; color: #2B2620; }
+  .clear-btn { border: none; background: #F0EBE0; border-radius: 999px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: #8A8071; flex-shrink: 0; }
+
+  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 48px 20px; gap: 12px; }
+  .empty p { font-size: 13.5px; color: #8A8071; line-height: 1.6; }
+  .count-pill { font-size: 11.5px; color: #B8622B; background: #F3E6DA; padding: 4px 10px; border-radius: 999px; font-weight: 600; }
+
+  .results { display: flex; flex-direction: column; gap: 10px; }
+  .card { background: #FFF; border: 1.5px solid #E5DFD3; border-radius: 12px; padding: 14px 16px; }
+  .card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .card-name { font-size: 14.5px; font-weight: 700; }
+  .card-vendor { font-size: 11.5px; color: #A69C8C; flex-shrink: 0; }
+  .spec-row { display: flex; gap: 8px; align-items: center; }
+  .spec-tag { font-size: 12px; background: #F0EBE0; color: #6B5D4A; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
+  .spec-weight { font-size: 13px; color: #B8622B; font-weight: 700; }
+  .note-box { margin-top: 10px; display: flex; gap: 8px; align-items: baseline; background: #F0EBE0; border-radius: 8px; padding: 8px 11px; }
+  .note-label { font-size: 11px; font-weight: 700; color: #B8622B; flex-shrink: 0; }
+  .note-text { font-size: 13px; color: #4A4235; line-height: 1.5; }
+
+  .manage-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 2px; }
+  .select-all { background: transparent; border: none; color: #B8622B; font-size: 13px; font-weight: 600; padding: 0; }
+  .manage-count { font-size: 12.5px; color: #8A8071; font-weight: 600; }
+  .mcard { display: flex; flex-direction: column; gap: 10px; background: #FFF; border: 1.5px solid #E5DFD3; border-radius: 12px; padding: 12px 14px; }
+  .mcard.sel { border-color: #B8462B; background: #FDF3F0; }
+  .mcard-top { display: flex; align-items: center; gap: 12px; }
+  .checkbox { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #D9D2C7; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; cursor: pointer; }
+  .checkbox.on { background: #B8462B; border-color: #B8462B; }
+  .mcard-name-input { display: block; width: 100%; font-size: 14px; font-weight: 700; color: #2B2620; font-family: inherit; border: none; border-bottom: 1.5px solid transparent; background: transparent; padding: 1px 0 2px; }
+  .mcard-name-input:focus { outline: none; border-bottom-color: #B8622B; }
+  .mcard-meta-row { display: flex; align-items: center; gap: 3px; margin-top: 3px; flex-wrap: wrap; }
+  .mcard-meta-input, .mcard-meta-select { font-size: 12px; color: #A69C8C; font-family: inherit; border: none; border-bottom: 1.5px solid transparent; background: transparent; padding: 1px 0; }
+  .mcard-meta-input:focus, .mcard-meta-select:focus { outline: none; border-bottom-color: #B8622B; color: #2B2620; }
+  .mcard-vendor-input { width: 68px; flex-shrink: 1; min-width: 40px; }
+  .mcard-weight-input { width: 40px; }
+  .mcard-meta-select { -webkit-appearance: none; appearance: none; }
+  .mcard-meta-sep { font-size: 12px; color: #D9D2C7; }
+  .mcard-meta-unit { font-size: 12px; color: #A69C8C; }
+  .note-edit-row { display: flex; align-items: center; gap: 8px; padding-left: 34px; }
+  .note-edit-label { font-size: 11.5px; font-weight: 700; color: #8A8071; flex-shrink: 0; }
+  .note-edit-input { flex: 1; border: 1.5px solid #E5DFD3; border-radius: 8px; padding: 7px 10px; font-size: 13px; background: #FAF7F2; color: #2B2620; outline: none; }
+
+  .float-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 448px; z-index: 40; }
+  .float-del { width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px; background: #B8462B; color: #FFF; border: none; border-radius: 12px; padding: 15px; font-size: 15px; font-weight: 700; box-shadow: 0 4px 16px rgba(184,70,43,0.35); }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #2B2620; color: #FAF7F2; padding: 10px 18px; border-radius: 999px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); max-width: 90%; text-align: center; z-index: 60; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(43,38,32,0.4); display: flex; align-items: flex-end; justify-content: center; z-index: 50; }
+  .overlay.center { align-items: center; }
+  .modal { background: #FAF7F2; width: 100%; max-width: 480px; border-radius: 18px 18px 0 0; padding: 20px 20px 28px; max-height: 90vh; overflow-y: auto; }
+  .confirm-box { background: #FAF7F2; width: 100%; max-width: 360px; margin: 0 16px; border-radius: 16px; padding: 22px 20px; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .modal-title { font-size: 16px; font-weight: 700; }
+  .icon-btn { border: none; background: #F0EBE0; border-radius: 999px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #6B5D4A; }
+
+  .tab-row { display: flex; gap: 6px; background: #F0EBE0; border-radius: 10px; padding: 4px; margin-bottom: 14px; }
+  .tab-btn { flex: 1; border: none; background: transparent; border-radius: 7px; padding: 8px 0; font-size: 13px; font-weight: 600; color: #8A8071; }
+  .tab-btn.on { background: #FFF; color: #2B2620; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+  .field-label { display: block; font-size: 12px; font-weight: 600; color: #6B5D4A; margin-top: 10px; margin-bottom: 5px; }
+  .field-input { width: 100%; border: 1.5px solid #E5DFD3; border-radius: 9px; padding: 10px 12px; font-size: 14px; background: #FFF; color: #2B2620; outline: none; }
+  .field-input.err { border-color: #B8462B; background: #FDF3F0; }
+  .submit-btn { width: 100%; margin-top: 18px; background: #B8622B; color: #FFF; border: none; border-radius: 10px; padding: 13px; font-size: 14.5px; font-weight: 700; }
+
+  .bulk-hint { font-size: 12px; color: #8A8071; line-height: 1.6; background: #F0EBE0; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+  .bulk-textarea { width: 100%; border: 1.5px solid #E5DFD3; border-radius: 9px; padding: 10px 12px; font-size: 13px; background: #FFF; color: #2B2620; outline: none; resize: vertical; margin-bottom: 10px; }
+  .bulk-preview-header { font-size: 12px; font-weight: 700; color: #6B5D4A; margin-bottom: 8px; }
+  .bulk-list { display: flex; flex-direction: column; gap: 5px; max-height: 180px; overflow-y: auto; margin-bottom: 14px; }
+  .bulk-row { display: flex; align-items: center; gap: 8px; background: #FFF; border: 1px solid #E5DFD3; border-radius: 7px; padding: 6px 10px; font-size: 12.5px; }
+  .bulk-row.err { background: #FBEAE5; border-color: #E8B9A8; }
+  .bulk-num { color: #A69C8C; font-size: 11px; flex-shrink: 0; width: 16px; }
+  .bulk-text { flex: 1; }
+  .bulk-err-text { color: #B8462B; font-size: 11px; flex-shrink: 0; }
+
+  .confirm-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .confirm-text { font-size: 13px; color: #6B5D4A; line-height: 1.6; margin-bottom: 18px; }
+  .confirm-btn-row { display: flex; gap: 8px; }
+  .cancel-btn { flex: 1; border: 1.5px solid #E5DFD3; background: #FFF; border-radius: 9px; padding: 11px; font-size: 14px; font-weight: 600; color: #6B5D4A; }
+  .del-btn { flex: 1; border: none; background: #B8462B; border-radius: 9px; padding: 11px; font-size: 14px; font-weight: 700; color: #FFF; }
+  .ok-btn { flex: 1; border: none; background: #B8622B; border-radius: 9px; padding: 11px; font-size: 14px; font-weight: 700; color: #FFF; }
+  .pw-icon { width: 44px; height: 44px; border-radius: 12px; background: #F3E6DA; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; color: #B8622B; }
+  .pw-err-text { font-size: 12.5px; color: #B8462B; font-weight: 600; margin-top: 8px; text-align: center; }
+  .hidden { display: none !important; }
+
+  .btn-photo { display: inline-flex; align-items: center; gap: 5px; background: #F3E6DA; color: #B8622B; border: none; border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 700; margin-top: 8px; }
+  .photo-thumbs { display: flex; gap: 5px; margin-top: 8px; }
+  .photo-thumbs img { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1.5px solid #E5DFD3; }
+  .photo-gallery { display: flex; flex-direction: column; gap: 10px; }
+  .photo-gallery img { width: 100%; max-height: 360px; object-fit: cover; border-radius: 12px; background: #F0EBE0; }
+  .photo-file-row { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+  .photo-file-btn { flex-shrink: 0; display: flex; align-items: center; gap: 5px; background: #FFF; color: #6B5D4A; border: 1.5px solid #E5DFD3; border-radius: 8px; padding: 8px 11px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .photo-file-status { font-size: 12px; color: #8A8071; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .photo-hint { font-size: 12px; color: #8A8071; line-height: 1.6; margin-top: 6px; }
+  .photo-pending-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .photo-pending-item { position: relative; width: 56px; height: 56px; }
+  .photo-pending-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1.5px solid #E5DFD3; }
+  .photo-pending-del { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 999px; background: #B8462B; color: #fff; border: none; display: flex; align-items: center; justify-content: center; }
+  .mcard-photo-btn { flex-shrink: 0; display: flex; align-items: center; gap: 4px; background: #F0EBE0; color: #8A8071; border: none; border-radius: 999px; padding: 6px 10px; font-size: 11.5px; font-weight: 700; }
+  .mcard-photo-btn.has { background: #F3E6DA; color: #B8622B; }
+  .photo-manage-thumbs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .photo-manage-item { position: relative; width: 80px; height: 80px; }
+  .photo-manage-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; border: 1.5px solid #E5DFD3; }
+  .photo-manage-del { position: absolute; top: -7px; right: -7px; width: 22px; height: 22px; border-radius: 999px; background: #B8462B; color: #fff; border: none; display: flex; align-items: center; justify-content: center; }
+  .photo-add-slot { width: 80px; height: 80px; border: 1.5px dashed #D9D2C7; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #A69C8C; background: #FAF7F2; }
+
+  .ing-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .ing-tag { font-size: 12px; background: #EAF2E3; color: #4B7A3D; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
+  .ing-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .ing-chip { display: flex; align-items: center; gap: 6px; background: #EAF2E3; color: #4B7A3D; padding: 4px 6px 4px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
+  .ing-chip button { flex-shrink: 0; width: 18px; height: 18px; border-radius: 999px; background: #4B7A3D; color: #fff; border: none; display: flex; align-items: center; justify-content: center; }
+  .ing-add-row { display: flex; gap: 7px; margin-bottom: 6px; }
+  .ing-add-row .ing-name-input { flex: 1.6; }
+  .ing-add-row .ing-percent-input { flex: 1; }
+  .ing-add-btn { flex-shrink: 0; background: #2B2620; color: #FAF7F2; border: none; border-radius: 9px; padding: 0 14px; font-size: 13px; font-weight: 700; }
+  .mcard-ing-btn { flex-shrink: 0; display: flex; align-items: center; gap: 4px; background: #F0EBE0; color: #8A8071; border: none; border-radius: 999px; padding: 6px 10px; font-size: 11.5px; font-weight: 700; }
+  .mcard-ing-btn.has { background: #EAF2E3; color: #4B7A3D; }
+  .ing-bulk-toggle-row { margin-top: 6px; }
+  .ing-bulk-toggle { background: transparent; border: none; color: #B8622B; font-size: 12.5px; font-weight: 600; padding: 0; }
+
+  .excel-action-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .excel-action-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; background: #FFF; color: #6B5D4A; border: 1.5px solid #E5DFD3; border-radius: 9px; padding: 11px; font-size: 13px; font-weight: 600; }
+  .excel-pick-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; background: #2B2620; color: #FAF7F2; border: none; border-radius: 10px; padding: 13px; font-size: 14.5px; font-weight: 700; margin-bottom: 8px; }
+  .excel-summary-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .excel-summary-pill { flex: 1; text-align: center; border-radius: 10px; padding: 10px 6px; font-size: 12px; font-weight: 700; }
+  .excel-summary-pill.new { background: #EAF2E3; color: #4B7A3D; }
+  .excel-summary-pill.upd { background: #F3E6DA; color: #B8622B; }
+  .excel-summary-pill.err { background: #FBEAE5; color: #B8462B; }
+  .excel-summary-num { display: block; font-size: 18px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<!-- 제품 데이터는 Supabase에서 실시간으로 불러옵니다 -->
+<!-- 제품 데이터는 이제 Supabase에서 실시간으로 불러옵니다 -->
+<script id="product-data" type="application/json">[]</script>
+
+<div id="app"><header><div class="header-left"><div class="stamp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg></div><div><div class="eyebrow">제품 스펙 조회</div><h1>제품 · 알당중량 검색</h1></div></div><button class="btn-admin" data-act="openPw"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>관리자</button></header><div class="search-wrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A69C8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input id="search-input" type="text" placeholder="제품명, 업체명, 비고로 검색" value=""></div><div id="body-root"><div class="empty"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D9D2C7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path></svg><p>제품명·업체명·비고 어느 걸로 검색해도 돼요.<br>단어 순서가 달라도 찾아드려요.</p><div class="count-pill">등록된 제품 278개</div></div></div></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var SUPABASE_URL = "https://cvlpxwodxpaokxkgrjrn.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_cdhnIobwUfvCr4y55hUt1A_iBEqJKt_";
+  var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var appUnlocked = false;
+  var sessionGatePw = null;   // 입장 비번 확인 후 서버 호출용으로 기억
+  var sessionAdminPw = null;  // 관리자 비번 확인 후 서버 호출용으로 기억
+  var MAX_GATE_FAILS = 5;
+  var TYPES = ["만두", "김말이"];
+
+  // ---- 아이콘 (인라인 SVG) ----
+  var ICON = {
+    pkg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>',
+    lock: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+    plus: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+    search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A69C8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+    x: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    trash: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+    download: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
+    upload: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 9 12 4 17 9"/><line x1="12" x2="12" y1="4" y2="15"/></svg>',
+    layers: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D9D2C7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>',
+    camera: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/></svg>',
+    percent: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>',
+    refresh: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M8 16H3v5"/></svg>'
+  };
+
+  // ---- 상태 ----
+  var state = {
+    products: [],
+    query: "",
+    mode: "search",      // "search" | "admin"
+    selectedIds: {},     // id -> true
+    addMode: "single",   // "single" | "bulk"
+    modal: null,         // null | "pw" | "add" | "bulkDelete" | "viewPhotos" | "managePhotos" | "manageIngredients"
+    viewingId: null,      // 사진/원료 관리로 보고 있는 제품 id
+    excelRows: null       // 엑셀 업로드 미리보기 데이터
+  };
+
+  // 신규 등록 폼에서 선택한 사진들(base64 data URL, 최대 3장) 임시 저장
+  var pendingPhotos = []; // [{ data, name }]
+  var PHOTO_MAX = 3;
+
+  // 신규 등록 폼에서 입력한 원료 함량 임시 저장
+  var pendingIngredients = []; // [{ name, percent }]
+
+  function isUserActivelyEditing() {
+    if (state.modal) return true; // 모달(등록/사진/원료 관리 등) 열려 있으면 건드리지 않음
+    var el = document.activeElement;
+    if (!el) return false;
+    var tag = el.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+  }
+
+  var autoRefreshTimer = null;
+  function startAutoRefresh() {
+    if (autoRefreshTimer) return;
+    autoRefreshTimer = setInterval(function () {
+      if (!appUnlocked || isUserActivelyEditing()) return;
+      fetchProducts(false);
+    }, 20000);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible" && appUnlocked && !isUserActivelyEditing()) {
+        fetchProducts(false);
+      }
+    });
+  }
+
+  // ---- 데이터 로드 (Supabase에서 실시간으로) ----
+  var isLoading = false;
+  async function fetchProducts(showToastOnFail) {
+    if (!sessionGatePw) return;
+    isLoading = true;
+    try {
+      var res = await db.rpc("get_products", { pw: sessionGatePw });
+      if (res.error) {
+        if (showToastOnFail) toast("데이터를 불러오지 못했어요. 인터넷 연결을 확인해주세요.");
+        return;
+      }
+      state.products = (res.data || []).map(function (row) {
+        return {
+          id: row.id, vendor: row.vendor, name: row.name, type: row.type,
+          weight: row.weight, note: row.note || "",
+          ingredients: row.ingredients || [], photos: row.photos || []
+        };
+      });
+      render();
+    } catch (e) {
+      if (showToastOnFail) toast("데이터를 불러오지 못했어요. 인터넷 연결을 확인해주세요.");
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  // 제품 하나를 서버에 저장(신규/수정 둘 다). 실패하면 알려주고 false 반환
+  async function saveProduct(p) {
+    if (!sessionAdminPw) { toast("관리자 인증이 만료됐어요. 다시 로그인해주세요."); return false; }
+    try {
+      var res = await db.rpc("upsert_product", {
+        admin_pw: sessionAdminPw,
+        p: {
+          id: p.id, vendor: p.vendor, name: p.name, type: p.type,
+          weight: p.weight, note: p.note || "",
+          ingredients: p.ingredients || [], photos: p.photos || []
+        }
+      });
+      if (res.error) { toast("저장 실패: " + res.error.message); return false; }
+      return true;
+    } catch (e) {
+      toast("저장 중 문제가 생겼어요. 인터넷 연결을 확인해주세요.");
+      return false;
+    }
+  }
+
+  async function deleteProductRemote(id) {
+    if (!sessionAdminPw) { toast("관리자 인증이 만료됐어요. 다시 로그인해주세요."); return false; }
+    try {
+      var res = await db.rpc("delete_product", { admin_pw: sessionAdminPw, product_id: id });
+      if (res.error) { toast("삭제 실패: " + res.error.message); return false; }
+      return true;
+    } catch (e) {
+      toast("삭제 중 문제가 생겼어요. 인터넷 연결을 확인해주세요.");
+      return false;
+    }
+  }
+
+  // 관리자 비밀번호를 서버에서 확인 (맞으면 sessionAdminPw 저장)
+  async function tryAdminLogin(value) {
+    try {
+      var res = await db.rpc("check_admin", { pw: value });
+      if (res.error) { toast("서버에 연결하지 못했어요."); return false; }
+      if (res.data === true) {
+        sessionAdminPw = value;
+        return true;
+      }
+      return false;
+    } catch (e) {
+      toast("서버에 연결하지 못했어요.");
+      return false;
+    }
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  // ---- 검색: 단어 순서 무관 ----
+  function matches(p, q) {
+    var tokens = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return true;
+    var hay = (p.name + " " + p.vendor + " " + p.type + " " + (p.note || "")).toLowerCase();
+    return tokens.every(function (t) { return hay.indexOf(t) !== -1; });
+  }
+
+  function filteredList() {
+    if (!state.query.trim()) return [];
+    return state.products.filter(function (p) { return matches(p, state.query); });
+  }
+  function manageList() {
+    if (!state.query.trim()) return state.products;
+    return state.products.filter(function (p) { return matches(p, state.query); });
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var el = document.getElementById("toast");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "toast";
+      el.className = "toast";
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.remove("hidden");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.add("hidden"); }, 2600);
+  }
+
+  // ---- 전체 잠금 화면 ----
+  function renderGate() {
+    var app = document.getElementById("app");
+    app.innerHTML =
+      '<div style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2px;padding:20px 16px;">' +
+      '<div class="pw-icon">' + ICON.lock + '</div>' +
+      '<div class="confirm-title">비밀번호 확인</div>' +
+      '<div class="confirm-text">사내 제품 스펙 자료예요.<br />비밀번호를 입력해주세요.</div>' +
+      '<input id="gate-pw" class="field-input" type="password" inputmode="numeric" placeholder="••••" style="text-align:center;letter-spacing:0.3em;font-size:18px;max-width:220px" />' +
+      '<div id="gate-err" class="pw-err-text hidden">비밀번호가 올바르지 않아요.</div>' +
+      '<button class="ok-btn" style="margin-top:14px;max-width:220px;width:100%" data-act="submitGate">입장</button>' +
+      '</div>';
+    setTimeout(function () { var i = document.getElementById("gate-pw"); if (i) i.focus(); }, 30);
+  }
+
+  function renderGateWarning(count) {
+    var wrap = document.getElementById("modal-root");
+    if (!wrap) return;
+    var remaining = MAX_GATE_FAILS - count;
+    wrap.innerHTML =
+      '<div class="overlay center" data-act="closeGateWarning">' +
+      '<div class="confirm-box" data-stop="1">' +
+      '<div class="confirm-title">비밀번호가 틀렸어요</div>' +
+      '<div class="confirm-text">연속 <strong>' + count + '/' + MAX_GATE_FAILS + '회</strong> 틀렸어요.<br />' +
+      MAX_GATE_FAILS + '회 연속 틀리면 <strong>모든 제품 데이터가 삭제</strong>돼요.<br />(앞으로 ' + remaining + '번 더 틀리면 삭제)</div>' +
+      '<button class="ok-btn" style="width:100%;margin-top:10px" data-act="closeGateWarning">확인</button>' +
+      '</div></div>';
+  }
+
+  function renderGateWiped() {
+    var wrap = document.getElementById("modal-root");
+    if (!wrap) return;
+    wrap.innerHTML =
+      '<div class="overlay center" data-act="closeGateWiped">' +
+      '<div class="confirm-box" data-stop="1">' +
+      '<div class="confirm-title">데이터가 삭제됐어요</div>' +
+      '<div class="confirm-text">비밀번호를 ' + MAX_GATE_FAILS + '회 연속 틀려서 등록돼 있던 모든 제품 데이터가 삭제됐어요.</div>' +
+      '<button class="ok-btn" style="width:100%;margin-top:10px" data-act="closeGateWiped">확인</button>' +
+      '</div></div>';
+  }
+
+  async function handleGateAttempt(value) {
+    var btn = document.querySelector('[data-act="submitGate"]');
+    if (btn) { btn.disabled = true; btn.textContent = "확인 중..."; }
+    try {
+      var res = await db.rpc("check_gate", { pw: value });
+      if (res.error) {
+        toast("서버에 연결하지 못했어요. 인터넷 연결을 확인해주세요.");
+        return;
+      }
+      var result = res.data;
+      if (result && result.ok) {
+        sessionGatePw = value;
+        appUnlocked = true;
+        await fetchProducts(true);
+        render();
+        startAutoRefresh();
+        return;
+      }
+      if (result && result.wiped) {
+        state.products = [];
+        appUnlocked = false;
+        sessionGatePw = null;
+        renderGateWiped();
+      } else {
+        var gel = document.getElementById("gate-err");
+        if (gel) gel.classList.remove("hidden");
+        renderGateWarning(result ? result.fail_count : 0);
+      }
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = "입장"; }
+    }
+  }
+
+  // ---- 렌더 ----
+  function render() {
+    var app = document.getElementById("app");
+    var html = "";
+
+    // 헤더
+    html += '<header>';
+    html += '<div class="header-left"><div class="stamp">' + ICON.pkg + '</div>';
+    html += '<div><div class="eyebrow">제품 스펙 조회</div><h1>제품 · 알당중량 검색</h1></div></div>';
+    if (state.mode === "admin") {
+      html += '<div class="header-btns">';
+      html += '<button class="btn-export" data-act="manualRefresh">' + ICON.refresh + '</button>';
+      html += '<button class="btn-export" data-act="export">' + ICON.download + '백업</button>';
+      html += '<button class="btn-add" data-act="openAdd">' + ICON.plus + '등록</button>';
+      html += '<button class="btn-done" data-act="exitAdmin">완료</button>';
+      html += '</div>';
+    } else {
+      html += '<div class="header-btns">';
+      html += '<button class="btn-export" data-act="manualRefresh">' + ICON.refresh + '</button>';
+      html += '<button class="btn-admin" data-act="openPw">' + ICON.lock + '관리자</button>';
+      html += '</div>';
+    }
+    html += '</header>';
+
+    if (state.mode === "admin") {
+      html += '<div class="admin-banner">' + ICON.lock + '관리자 모드 — 등록·삭제·수정 사항은 즉시 서버에 저장돼요</div>';
+    }
+
+    // 검색바
+    var ph = state.mode === "admin" ? "관리할 제품 검색" : "제품명, 업체명, 비고로 검색";
+    html += '<div class="search-wrap">' + ICON.search;
+    html += '<input id="search-input" type="text" placeholder="' + ph + '" value="' + esc(state.query) + '" />';
+    if (state.query) html += '<button class="clear-btn" data-act="clearSearch">' + ICON.x + '</button>';
+    html += '</div>';
+
+    // 본문
+    html += '<div id="body-root">';
+    if (state.mode === "admin") {
+      html += renderManage();
+    } else {
+      html += renderSearch();
+    }
+    html += '</div>';
+
+    app.innerHTML = html;
+
+    // 플로팅 삭제 바
+    var selCount = Object.keys(state.selectedIds).length;
+    var fb = document.getElementById("float-bar");
+    if (fb) fb.remove();
+    if (state.mode === "admin" && selCount > 0) {
+      var bar = document.createElement("div");
+      bar.id = "float-bar";
+      bar.className = "float-bar";
+      bar.innerHTML = '<button class="float-del" data-act="askBulkDelete">' + ICON.trash + '선택한 ' + selCount + '개 삭제</button>';
+      document.body.appendChild(bar);
+    }
+
+    // 검색 입력 포커스 유지
+    var si = document.getElementById("search-input");
+    if (si && state._focusSearch) {
+      si.focus();
+      var v = si.value; si.value = ""; si.value = v; // 커서 끝으로
+    }
+    state._focusSearch = false;
+  }
+
+  // 검색 결과만 갱신 (입력창은 그대로 두어 한글 조합 유지)
+  function updateResultsOnly() {
+    var body = document.getElementById("body-root");
+    if (body) {
+      body.innerHTML = state.mode === "admin" ? renderManage() : renderSearch();
+    }
+    // clear 버튼 표시/숨김 (입력창은 건드리지 않음)
+    var sw = document.querySelector(".search-wrap");
+    if (sw) {
+      var existing = sw.querySelector(".clear-btn");
+      if (state.query && !existing) {
+        var b = document.createElement("button");
+        b.className = "clear-btn";
+        b.setAttribute("data-act", "clearSearch");
+        b.innerHTML = ICON.x;
+        sw.appendChild(b);
+      } else if (!state.query && existing) {
+        existing.remove();
+      }
+    }
+  }
+
+  function renderSearch() {
+    if (!state.query.trim()) {
+      return '<div class="empty">' + ICON.layers +
+        '<p>제품명·업체명·비고 어느 걸로 검색해도 돼요.<br />단어 순서가 달라도 찾아드려요.</p>' +
+        '<div class="count-pill">등록된 제품 ' + state.products.length + '개</div></div>';
+    }
+    var list = filteredList();
+    if (list.length === 0) {
+      return '<div class="empty"><p>&quot;' + esc(state.query) + '&quot;와 일치하는 제품이 없어요.</p></div>';
+    }
+    var h = '<div class="results">';
+    list.forEach(function (p) {
+      h += '<div class="card">';
+      h += '<div class="card-top"><span class="card-name">' + esc(p.name) + '</span><span class="card-vendor">' + esc(p.vendor) + '</span></div>';
+      h += '<div class="spec-row"><span class="spec-tag">' + esc(p.type) + '</span><span class="spec-weight">' + esc(p.weight) + 'g / 알</span></div>';
+      if (p.ingredients && p.ingredients.length) {
+        h += '<div class="ing-row">';
+        p.ingredients.forEach(function (ing) {
+          h += '<span class="ing-tag">' + esc(ing.name) + ' ' + esc(ing.percent) + '%</span>';
+        });
+        h += '</div>';
+      }
+      if (p.note && p.note.trim()) {
+        h += '<div class="note-box"><span class="note-label">비고</span><span class="note-text">' + esc(p.note) + '</span></div>';
+      }
+      if (p.photos && p.photos.length) {
+        h += '<button class="btn-photo" data-act="viewPhotos" data-id="' + esc(p.id) + '">' + ICON.camera + '사진 보기 (' + p.photos.length + ')</button>';
+      }
+      h += '</div>';
+    });
+    h += '</div>';
+    return h;
+  }
+
+  function renderManage() {
+    var list = manageList();
+    var allSel = list.length > 0 && list.every(function (p) { return state.selectedIds[p.id]; });
+    var selCount = Object.keys(state.selectedIds).length;
+    var h = '<div class="manage-bar">';
+    h += '<button class="select-all" data-act="toggleAll">' + (allSel ? "전체 해제" : "전체 선택") + '</button>';
+    h += '<span class="manage-count">' + selCount + '개 선택됨</span></div>';
+    h += '<div class="results">';
+    list.forEach(function (p) {
+      var on = !!state.selectedIds[p.id];
+      h += '<div class="mcard' + (on ? " sel" : "") + '">';
+      h += '<div class="mcard-top">';
+      h += '<div class="checkbox' + (on ? " on" : "") + '" data-act="toggleSel" data-id="' + esc(p.id) + '">' + (on ? ICON.check : "") + '</div>';
+      h += '<div style="flex:1;min-width:0">';
+      h += '<input class="mcard-name-input" data-field-id="' + esc(p.id) + '" data-field="name" value="' + esc(p.name) + '" />';
+      h += '<div class="mcard-meta-row">';
+      h += '<input class="mcard-meta-input mcard-vendor-input" data-field-id="' + esc(p.id) + '" data-field="vendor" value="' + esc(p.vendor) + '" />';
+      h += '<span class="mcard-meta-sep">·</span>';
+      h += '<select class="mcard-meta-select" data-field-id="' + esc(p.id) + '" data-field="type">';
+      TYPES.forEach(function (t) { h += '<option value="' + esc(t) + '"' + (p.type === t ? " selected" : "") + '>' + esc(t) + '</option>'; });
+      h += '</select>';
+      h += '<span class="mcard-meta-sep">·</span>';
+      h += '<input type="number" class="mcard-meta-input mcard-weight-input" data-field-id="' + esc(p.id) + '" data-field="weight" value="' + esc(p.weight) + '" />';
+      h += '<span class="mcard-meta-unit">g</span>';
+      h += '</div></div>';
+      h += '<button class="mcard-photo-btn' + (p.photos && p.photos.length ? " has" : "") + '" data-act="managePhotos" data-id="' + esc(p.id) + '" data-stop="1">' + ICON.camera + (p.photos && p.photos.length ? p.photos.length + "/" + PHOTO_MAX : "사진") + '</button>';
+      h += '<button class="mcard-ing-btn' + (p.ingredients && p.ingredients.length ? " has" : "") + '" data-act="manageIngredients" data-id="' + esc(p.id) + '" data-stop="1">' + ICON.percent + (p.ingredients && p.ingredients.length ? p.ingredients.length + "개" : "원료") + '</button>';
+      h += '</div>';
+      h += '<div class="note-edit-row"><span class="note-edit-label">비고</span>';
+      h += '<input class="note-edit-input" data-note-id="' + esc(p.id) + '" value="' + esc(p.note || "") + '" placeholder="비고 입력 후 벗어나면 저장" /></div>';
+      h += '</div>';
+    });
+    h += '</div>';
+    if (list.length === 0) {
+      h += '<div class="empty"><p>표시할 제품이 없어요.</p></div>';
+    }
+    return h;
+  }
+
+  // ---- 모달 렌더 ----
+  function renderModal() {
+    var wrap = document.getElementById("modal-root");
+    if (!wrap) {
+      wrap = document.createElement("div");
+      wrap.id = "modal-root";
+      document.body.appendChild(wrap);
+    }
+    if (!state.modal) { wrap.innerHTML = ""; return; }
+
+    if (state.modal === "pw") {
+      wrap.innerHTML =
+        '<div class="overlay center" data-act="closeModal">' +
+        '<div class="confirm-box" data-stop="1">' +
+        '<div class="pw-icon">' + ICON.lock + '</div>' +
+        '<div class="confirm-title">관리자 모드</div>' +
+        '<div class="confirm-text">제품 등록·삭제는 관리자만 가능해요. 비밀번호를 입력해주세요.</div>' +
+        '<input id="pw-input" class="field-input" type="password" inputmode="numeric" placeholder="••••" style="text-align:center;letter-spacing:0.3em;font-size:18px" />' +
+        '<div id="pw-err" class="pw-err-text hidden">비밀번호가 올바르지 않아요.</div>' +
+        '<div class="confirm-btn-row" style="margin-top:16px">' +
+        '<button class="cancel-btn" data-act="closeModal">취소</button>' +
+        '<button class="ok-btn" data-act="submitPw">입장</button></div>' +
+        '</div></div>';
+      setTimeout(function () { var i = document.getElementById("pw-input"); if (i) i.focus(); }, 30);
+    } else if (state.modal === "add") {
+      wrap.innerHTML = renderAddModal();
+    } else if (state.modal === "bulkDelete") {
+      var n = Object.keys(state.selectedIds).length;
+      wrap.innerHTML =
+        '<div class="overlay center" data-act="closeModal">' +
+        '<div class="confirm-box" data-stop="1">' +
+        '<div class="confirm-title">' + n + '개 제품을 삭제할까요?</div>' +
+        '<div class="confirm-text">선택한 ' + n + '개 제품이 서버에서 즉시 삭제돼요.<br />이 작업은 되돌릴 수 없어요.</div>' +
+        '<div class="confirm-btn-row">' +
+        '<button class="cancel-btn" data-act="closeModal">취소</button>' +
+        '<button class="del-btn" data-act="confirmBulkDelete">삭제</button></div>' +
+        '</div></div>';
+    } else if (state.modal === "viewPhotos") {
+      var vp = state.products.filter(function (x) { return x.id === state.viewingId; })[0];
+      if (!vp || !vp.photos || !vp.photos.length) { wrap.innerHTML = ""; return; }
+      var gh = '<div class="photo-gallery">';
+      vp.photos.forEach(function (src) { gh += '<img src="' + src + '" />'; });
+      gh += '</div>';
+      wrap.innerHTML =
+        '<div class="overlay" data-act="closeModal">' +
+        '<div class="modal" data-stop="1">' +
+        '<div class="modal-header"><div class="modal-title">' + esc(vp.name) + '</div>' +
+        '<button class="icon-btn" data-act="closeModal">' + ICON.x + '</button></div>' +
+        gh +
+        '</div></div>';
+    } else if (state.modal === "managePhotos") {
+      var mp = state.products.filter(function (x) { return x.id === state.viewingId; })[0];
+      if (!mp) { wrap.innerHTML = ""; return; }
+      mp.photos = mp.photos || [];
+      var th = '<div class="photo-manage-thumbs">';
+      mp.photos.forEach(function (src, idx) {
+        th += '<div class="photo-manage-item"><img src="' + src + '" />' +
+          '<button class="photo-manage-del" data-act="removeProductPhoto" data-id="' + esc(mp.id) + '" data-idx="' + idx + '">' + ICON.x + '</button></div>';
+      });
+      if (mp.photos.length < PHOTO_MAX) {
+        th += '<button type="button" class="photo-add-slot" data-act="addProductPhoto" data-id="' + esc(mp.id) + '">' + ICON.camera + '</button>';
+      }
+      th += '</div>';
+      wrap.innerHTML =
+        '<div class="overlay" data-act="closeModal">' +
+        '<div class="modal" data-stop="1">' +
+        '<div class="modal-header"><div class="modal-title">' + esc(mp.name) + ' 사진</div>' +
+        '<button class="icon-btn" data-act="closeModal">' + ICON.x + '</button></div>' +
+        th +
+        '<div class="photo-hint">최대 ' + PHOTO_MAX + '장까지 등록할 수 있어요.</div>' +
+        '<input type="file" class="hidden" accept="image/*" multiple data-photo-target="' + esc(mp.id) + '" />' +
+        '</div></div>';
+    } else if (state.modal === "manageIngredients") {
+      var mi = state.products.filter(function (x) { return x.id === state.viewingId; })[0];
+      if (!mi) { wrap.innerHTML = ""; return; }
+      mi.ingredients = mi.ingredients || [];
+      var ch = '<div class="ing-chip-list">';
+      mi.ingredients.forEach(function (ing, idx) {
+        ch += '<span class="ing-chip">' + esc(ing.name) + ' ' + esc(ing.percent) + '%' +
+          '<button data-act="removeProductIngredient" data-id="' + esc(mi.id) + '" data-idx="' + idx + '">' + ICON.x + '</button></span>';
+      });
+      ch += '</div>';
+      if (!mi.ingredients.length) {
+        ch = '<div class="photo-hint" style="margin-top:0">아직 등록된 원료가 없어요.</div>';
+      }
+      wrap.innerHTML =
+        '<div class="overlay" data-act="closeModal">' +
+        '<div class="modal" data-stop="1">' +
+        '<div class="modal-header"><div class="modal-title">' + esc(mi.name) + ' 원료 함량</div>' +
+        '<button class="icon-btn" data-act="closeModal">' + ICON.x + '</button></div>' +
+        ch +
+        '<div class="ing-add-row" style="margin-top:12px">' +
+        '<input id="ing-edit-name" class="field-input ing-name-input" placeholder="원료명 (예: 돼지고기)" />' +
+        '<input id="ing-edit-percent" class="field-input ing-percent-input" type="number" placeholder="%" />' +
+        '</div>' +
+        '<button type="button" class="ing-add-btn" style="width:100%;padding:11px;display:flex;align-items:center;justify-content:center;gap:6px" data-act="addProductIngredient" data-id="' + esc(mi.id) + '">' + ICON.plus + '원료 추가</button>' +
+        '<div class="photo-hint">여러 개 추가할 수 있고, 합계가 꼭 100%일 필요는 없어요 (주요 원료만 표시).</div>' +
+        '<div class="ing-bulk-toggle-row"><button type="button" class="ing-bulk-toggle" data-act="toggleIngBulkEdit">여러 개 한 번에 입력</button></div>' +
+        '<div id="ing-bulk-edit-wrap" class="hidden">' +
+        '<div class="bulk-hint">한 줄에 하나씩, <strong>원료명</strong>과 <strong>%숫자</strong>를 입력하세요.<br />예: 돼지고기 35 / 돼지고기, 35 / 돼지고기 35% — 엑셀에서 두 칸을 복사해 붙여넣어도 인식돼요.</div>' +
+        '<textarea id="ing-edit-bulk" class="bulk-textarea" rows="4" placeholder="돼지고기 35&#10;양배추 20&#10;당면 15"></textarea>' +
+        '<button type="button" class="submit-btn" style="margin-top:0" data-act="addBulkIngredientsProduct" data-id="' + esc(mi.id) + '">일괄 추가</button>' +
+        '</div>' +
+        '</div></div>';
+    }
+  }
+
+  function renderPendingPhotosRow() {
+    if (!pendingPhotos.length) return "";
+    var h = '<div class="photo-pending-row">';
+    pendingPhotos.forEach(function (ph, idx) {
+      h += '<div class="photo-pending-item"><img src="' + ph.data + '" />' +
+        '<button type="button" class="photo-pending-del" data-act="removePendingPhoto" data-idx="' + idx + '">' + ICON.x + '</button></div>';
+    });
+    h += '</div>';
+    return h;
+  }
+
+  // 등록 폼 전체를 다시 그리지 않고 사진 미리보기 부분만 갱신 (입력값 유지)
+  function refreshPendingPhotosUI() {
+    var status = document.getElementById("f-photo-status");
+    if (status) status.textContent = pendingPhotos.length ? pendingPhotos.length + "/" + PHOTO_MAX + "장 선택됨" : "선택된 사진 없음";
+    var wrap = document.getElementById("pending-photos-wrap");
+    if (wrap) wrap.innerHTML = renderPendingPhotosRow();
+  }
+
+  function renderPendingIngredientsRow() {
+    if (!pendingIngredients.length) return "";
+    var h = '<div class="ing-chip-list">';
+    pendingIngredients.forEach(function (ing, idx) {
+      h += '<span class="ing-chip">' + esc(ing.name) + ' ' + esc(ing.percent) + '%' +
+        '<button type="button" data-act="removePendingIngredient" data-idx="' + idx + '">' + ICON.x + '</button></span>';
+    });
+    h += '</div>';
+    return h;
+  }
+
+  // 등록 폼 전체를 다시 그리지 않고 원료 칩 목록만 갱신 (입력값 유지)
+  function refreshPendingIngredientsUI() {
+    var wrap = document.getElementById("pending-ingredients-wrap");
+    if (wrap) wrap.innerHTML = renderPendingIngredientsRow();
+  }
+
+  // 원료 한 줄 파싱: "돼지고기\t35" / "돼지고기, 35" / "돼지고기 35" / "돼지고기 35%" / "돼지고기: 35%" 모두 지원
+  function parseIngredientLine(line) {
+    line = line.trim();
+    if (!line) return null;
+    var cols = null;
+    if (line.indexOf("\t") !== -1) cols = line.split("\t");
+    else if (line.indexOf(",") !== -1) cols = line.split(",");
+    var name, pctRaw;
+    if (cols && cols.length >= 2) {
+      name = (cols[0] || "").trim();
+      pctRaw = (cols[1] || "").trim();
+    } else {
+      var m = line.match(/^(.*?)[:\s]+([\d.]+)\s*%?$/);
+      if (m) { name = m[1].trim(); pctRaw = m[2].trim(); } else { name = line; pctRaw = ""; }
+    }
+    pctRaw = pctRaw.replace("%", "").trim();
+    var pct = parseFloat(pctRaw);
+    return { name: name, percent: pct, valid: !!name && !isNaN(pct) };
+  }
+
+  function parseIngredientBulk(text) {
+    return text.split("\n")
+      .map(function (l) { return l.replace(/\r/g, ""); })
+      .filter(function (l) { return l.trim().length > 0; })
+      .map(parseIngredientLine)
+      .filter(Boolean);
+  }
+
+  function renderAddModal() {
+    var h = '<div class="overlay" data-act="closeModal"><div class="modal" data-stop="1">';
+    h += '<div class="modal-header"><div class="modal-title">신제품 등록</div>';
+    h += '<button class="icon-btn" data-act="closeModal">' + ICON.x + '</button></div>';
+    h += '<div class="tab-row">';
+    h += '<button class="tab-btn' + (state.addMode === "single" ? " on" : "") + '" data-act="tabSingle">한 개씩 입력</button>';
+    h += '<button class="tab-btn' + (state.addMode === "bulk" ? " on" : "") + '" data-act="tabBulk">엑셀 붙여넣기</button>';
+    h += '<button class="tab-btn' + (state.addMode === "excel" ? " on" : "") + '" data-act="tabExcel">엑셀 업로드</button>';
+    h += '</div>';
+
+    if (state.addMode === "single") {
+      h += '<label class="field-label">업체명</label><input id="f-vendor" class="field-input" placeholder="예: 롯데마트" />';
+      h += '<label class="field-label">제품명</label><input id="f-name" class="field-input" placeholder="예: 매운 김치왕만두" />';
+      h += '<label class="field-label">구분 (만두/김말이)</label><select id="f-type" class="field-input">';
+      TYPES.forEach(function (t) { h += '<option value="' + t + '">' + t + '</option>'; });
+      h += '</select>';
+      h += '<label class="field-label">알당중량 (g)</label><input id="f-weight" class="field-input" type="number" placeholder="예: 18" />';
+      h += '<label class="field-label">비고 (선택)</label><input id="f-note" class="field-input" placeholder="예: 국내산 김치 사용, 찜 조리 전용" />';
+      h += '<label class="field-label">주요 원료 함량 (선택)</label>';
+      h += '<div id="pending-ingredients-wrap">' + renderPendingIngredientsRow() + '</div>';
+      h += '<div class="ing-add-row">';
+      h += '<input id="f-ing-name" class="field-input ing-name-input" placeholder="원료명 (예: 돼지고기)" />';
+      h += '<input id="f-ing-percent" class="field-input ing-percent-input" type="number" placeholder="%" />';
+      h += '</div>';
+      h += '<button type="button" class="ing-add-btn" style="width:100%;padding:11px;display:flex;align-items:center;justify-content:center;gap:6px" data-act="addPendingIngredient">' + ICON.plus + '원료 추가</button>';
+      h += '<div class="photo-hint">문의가 잦은 함량(돼지고기 등)을 미리 넣어두면 검색 결과에 바로 보여요.</div>';
+      h += '<div class="ing-bulk-toggle-row"><button type="button" class="ing-bulk-toggle" data-act="toggleIngBulkNew">여러 개 한 번에 입력</button></div>';
+      h += '<div id="ing-bulk-new-wrap" class="hidden">';
+      h += '<div class="bulk-hint">한 줄에 하나씩, <strong>원료명</strong>과 <strong>%숫자</strong>를 입력하세요.<br />예: 돼지고기 35 / 돼지고기, 35 / 돼지고기 35% — 엑셀에서 두 칸(원료명·함량)을 복사해 붙여넣어도 인식돼요.</div>';
+      h += '<textarea id="f-ing-bulk" class="bulk-textarea" rows="4" placeholder="돼지고기 35&#10;양배추 20&#10;당면 15"></textarea>';
+      h += '<button type="button" class="submit-btn" style="margin-top:0" data-act="addBulkIngredientsPending">일괄 추가</button>';
+      h += '</div>';
+      h += '<label class="field-label" style="margin-top:16px">제품 사진 (선택, 최대 ' + PHOTO_MAX + '장)</label>';
+      h += '<div class="photo-file-row">';
+      h += '<button type="button" class="photo-file-btn" data-act="pickNewPhotos">' + ICON.camera + '사진 선택</button>';
+      h += '<span id="f-photo-status" class="photo-file-status">' + (pendingPhotos.length ? pendingPhotos.length + "/" + PHOTO_MAX + "장 선택됨" : "선택된 사진 없음") + '</span>';
+      h += '</div>';
+      h += '<div id="pending-photos-wrap">' + renderPendingPhotosRow() + '</div>';
+      h += '<input type="file" id="f-photos" class="hidden" accept="image/*" multiple />';
+      h += '<button class="submit-btn" data-act="submitSingle">등록하기</button>';
+    } else if (state.addMode === "bulk") {
+      h += '<div class="bulk-hint">엑셀에서 <strong>업체명 · 제품명 · 만두/김말이 · 알당중량 · 비고</strong> 순서로 범위를 복사해 붙여넣으세요. (비고는 마지막 열, 비워둬도 됨)<br />구분 칸은 <strong>만두</strong> 또는 <strong>김말이</strong>로 정확히 입력되어야 인식돼요.</div>';
+      h += '<textarea id="bulk-text" class="bulk-textarea" rows="6" placeholder="롯데마트&#9;매운김치왕만두&#9;만두&#9;32&#9;국내산 김치"></textarea>';
+      h += '<div id="bulk-preview"></div>';
+      h += '<button class="submit-btn" data-act="submitBulk">일괄 등록</button>';
+    } else {
+      h += renderExcelTab();
+    }
+    h += '</div></div>';
+    return h;
+  }
+
+  // ---- 엑셀 파일 업로드로 일괄 등록/수정 ----
+  var EXCEL_HEADER_ALIASES = {
+    id: ["id", "ID", "아이디"],
+    vendor: ["업체명", "업체"],
+    name: ["제품명", "제품", "품명"],
+    type: ["구분", "종류"],
+    weight: ["알당중량", "알당중량(g)", "중량", "중량(g)", "중량(그램)"],
+    note: ["비고", "메모"],
+    ingredients: ["원료", "원료함량", "원료(함량)"]
+  };
+
+  function mapExcelRow(row) {
+    var out = {};
+    Object.keys(row).forEach(function (key) {
+      var k = String(key || "").trim();
+      Object.keys(EXCEL_HEADER_ALIASES).forEach(function (field) {
+        if (out[field] === undefined && EXCEL_HEADER_ALIASES[field].indexOf(k) !== -1) {
+          out[field] = row[key];
+        }
+      });
+    });
+    return out;
+  }
+
+  function parseIngredientsCell(text) {
+    if (!text) return [];
+    return String(text).split(",").map(function (s) { return s.trim(); }).filter(Boolean)
+      .map(function (entry) {
+        var m = entry.match(/^(.*?)[:\s]+([\d.]+)\s*%?$/);
+        if (!m) return null;
+        return { name: m[1].trim(), percent: parseFloat(m[2]) };
+      }).filter(function (x) { return x && x.name && !isNaN(x.percent); });
+  }
+
+  function buildExcelRows(jsonRows) {
+    return jsonRows.map(function (raw, idx) {
+      var f = mapExcelRow(raw);
+      var idRaw = f.id !== undefined && String(f.id).trim() !== "" ? String(f.id).trim() : "";
+      var vendor = f.vendor !== undefined ? String(f.vendor).trim() : "";
+      var name = f.name !== undefined ? String(f.name).trim() : "";
+      var type = f.type !== undefined ? String(f.type).trim() : "";
+      var weightNum = parseFloat(f.weight);
+      var noteRaw = f.note !== undefined ? String(f.note).trim() : "";
+      var ingRaw = f.ingredients !== undefined ? String(f.ingredients).trim() : "";
+
+      var errors = [];
+      if (!name) errors.push("제품명 없음");
+      if (!weightNum || isNaN(weightNum)) errors.push("중량 숫자 아님");
+      if (TYPES.indexOf(type) === -1) errors.push('구분 "' + (type || "-") + '" 인식 불가');
+
+      var matchedProduct = idRaw ? state.products.filter(function (x) { return x.id === idRaw; })[0] : null;
+
+      return {
+        rowIndex: idx + 1,
+        idRaw: idRaw,
+        vendor: vendor,
+        name: name,
+        type: type,
+        weightNum: weightNum,
+        note: noteRaw !== "" ? noteRaw : undefined,
+        ingredients: ingRaw !== "" ? parseIngredientsCell(ingRaw) : undefined,
+        matchedProduct: matchedProduct || null,
+        action: matchedProduct ? "update" : "new",
+        valid: errors.length === 0,
+        errors: errors
+      };
+    });
+  }
+
+  function renderExcelTab() {
+    var h = '<div class="bulk-hint">엑셀 파일(.xlsx)을 업로드해서 여러 제품을 한 번에 등록·수정할 수 있어요.<br />열 이름: <strong>id(선택) · 업체명 · 제품명 · 구분 · 알당중량 · 비고 · 원료</strong><br /><strong>id가 기존 제품과 일치하면 수정</strong>, 없으면 신규 등록돼요. 원료 칸은 &quot;돼지고기:35,양배추:20&quot; 형식으로 입력하세요.</div>';
+    h += '<div class="excel-action-row">';
+    h += '<button type="button" class="excel-action-btn" data-act="downloadExcelTemplate">' + ICON.download + '템플릿 받기</button>';
+    h += '<button type="button" class="excel-action-btn" data-act="exportExcelCurrent">' + ICON.download + '현재 데이터 받기</button>';
+    h += '</div>';
+    h += '<button type="button" class="excel-pick-btn" data-act="pickExcelFile">' + ICON.upload + '엑셀 파일 선택</button>';
+    h += '<input type="file" id="f-excel" class="hidden" accept=".xlsx,.xls,.csv" />';
+
+    if (state.excelRows && state.excelRows.length) {
+      var rows = state.excelRows;
+      var newCount = rows.filter(function (r) { return r.valid && r.action === "new"; }).length;
+      var updCount = rows.filter(function (r) { return r.valid && r.action === "update"; }).length;
+      var errCount = rows.filter(function (r) { return !r.valid; }).length;
+      h += '<div class="excel-summary-row">';
+      h += '<div class="excel-summary-pill new"><span class="excel-summary-num">' + newCount + '</span>신규 등록</div>';
+      h += '<div class="excel-summary-pill upd"><span class="excel-summary-num">' + updCount + '</span>기존 수정</div>';
+      h += '<div class="excel-summary-pill err"><span class="excel-summary-num">' + errCount + '</span>오류(건너뜀)</div>';
+      h += '</div>';
+      h += '<div class="bulk-list">';
+      rows.forEach(function (r) {
+        h += '<div class="bulk-row' + (r.valid ? "" : " err") + '"><span class="bulk-num">' + r.rowIndex + '</span>';
+        h += '<span class="bulk-text">' + (r.valid ? (r.action === "update" ? "[수정] " : "[신규] ") : "") +
+          esc(r.vendor || "-") + ' · ' + esc(r.name || "(제품명 없음)") + ' · ' + esc(r.type || "-") +
+          (isNaN(r.weightNum) ? "" : " · " + esc(r.weightNum) + "g") + '</span>';
+        if (!r.valid) h += '<span class="bulk-err-text">' + esc(r.errors.join(", ")) + '</span>';
+        h += '</div>';
+      });
+      h += '</div>';
+      h += '<button type="button" class="submit-btn" data-act="applyExcelImport">' + (newCount + updCount) + '개 적용하기</button>';
+      h += '<button type="button" class="cancel-btn" style="width:100%;margin-top:8px" data-act="resetExcelImport">다시 선택</button>';
+    }
+    return h;
+  }
+
+  // ---- 엑셀 파싱 ----
+  function parseBulk(text) {
+    if (!text.trim()) return [];
+    return text.split("\n").map(function (l) { return l.replace(/\r/g, ""); })
+      .filter(function (l) { return l.trim().length > 0; })
+      .map(function (line, idx) {
+        var cols = line.indexOf("\t") !== -1 ? line.split("\t") : line.split(",");
+        cols = cols.map(function (c) { return (c || "").trim(); });
+        var vendor = cols[0], name = cols[1], typeRaw = cols[2], weightRaw = cols[3], noteRaw = cols[4];
+        var weight = parseFloat(weightRaw);
+        var typeMatch = TYPES.indexOf(typeRaw) !== -1 ? typeRaw : null;
+        var errors = [];
+        if (!name) errors.push("제품명 없음");
+        if (!typeMatch) errors.push('구분 "' + (typeRaw || "-") + '" 인식 불가');
+        if (!weightRaw || isNaN(weight)) errors.push("중량 숫자 아님");
+        return {
+          rowIndex: idx + 1,
+          vendor: vendor || "미기입",
+          name: name || "",
+          type: typeMatch || typeRaw || "",
+          weight: weight,
+          note: noteRaw || "",
+          valid: errors.length === 0,
+          errors: errors
+        };
+      });
+  }
+
+  function updateBulkPreview() {
+    var ta = document.getElementById("bulk-text");
+    var box = document.getElementById("bulk-preview");
+    if (!ta || !box) return;
+    var rows = parseBulk(ta.value);
+    var valid = rows.filter(function (r) { return r.valid; });
+    var btn = document.querySelector('[data-act="submitBulk"]');
+    if (btn) {
+      btn.textContent = valid.length > 0 ? valid.length + "개 일괄 등록" : "일괄 등록";
+      btn.style.opacity = valid.length === 0 ? "0.5" : "1";
+    }
+    if (rows.length === 0) { box.innerHTML = ""; return; }
+    var h = '<div class="bulk-preview-header">미리보기 — 총 ' + rows.length + '행 중 ' + valid.length + '행 등록 가능</div><div class="bulk-list">';
+    rows.forEach(function (r) {
+      h += '<div class="bulk-row' + (r.valid ? "" : " err") + '"><span class="bulk-num">' + r.rowIndex + '</span>';
+      h += '<span class="bulk-text">' + esc(r.vendor) + ' · ' + esc(r.name || "(제품명 없음)") + ' · ' + esc(r.type || "-") + ' · ' + (isNaN(r.weight) ? "-" : esc(r.weight) + "g") + (r.note ? ' · 비고: ' + esc(r.note) : "") + '</span>';
+      if (!r.valid) h += '<span class="bulk-err-text">' + esc(r.errors.join(", ")) + '</span>';
+      h += '</div>';
+    });
+    h += '</div>';
+    box.innerHTML = h;
+  }
+
+  // ---- 액션 ----
+  function nextId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  async function submitSingle() {
+    var name = (document.getElementById("f-name").value || "").trim();
+    var weightRaw = (document.getElementById("f-weight").value || "").trim();
+    if (!name || !weightRaw) { toast("제품명과 알당중량을 입력해주세요."); return; }
+    var p = {
+      id: nextId(),
+      vendor: (document.getElementById("f-vendor").value || "").trim() || "미기입",
+      name: name,
+      type: document.getElementById("f-type").value,
+      weight: parseFloat(weightRaw),
+      note: (document.getElementById("f-note").value || "").trim(),
+      ingredients: pendingIngredients.slice(),
+      photos: pendingPhotos.map(function (ph) { return ph.data; })
+    };
+    var btn = document.querySelector('[data-act="submitSingle"]');
+    if (btn) { btn.disabled = true; btn.textContent = "저장 중..."; }
+    var ok = await saveProduct(p);
+    if (btn) { btn.disabled = false; btn.textContent = "등록하기"; }
+    if (!ok) return;
+    state.products.unshift(p);
+    state.modal = null;
+    pendingPhotos = [];
+    pendingIngredients = [];
+    toast('"' + p.name + '" 추가됨');
+    render(); renderModal();
+  }
+
+  async function submitBulk() {
+    var ta = document.getElementById("bulk-text");
+    var rows = parseBulk(ta ? ta.value : "");
+    var valid = rows.filter(function (r) { return r.valid; });
+    if (valid.length === 0) { toast("등록 가능한 행이 없어요. 형식을 확인해주세요."); return; }
+    var btn = document.querySelector('[data-act="submitBulk"]');
+    if (btn) { btn.disabled = true; btn.textContent = "저장 중..."; }
+    var newProducts = valid.map(function (r) {
+      return { id: nextId(), vendor: r.vendor, name: r.name, type: r.type, weight: r.weight, note: r.note, ingredients: [], photos: [] };
+    });
+    var results = await Promise.all(newProducts.map(function (p) { return saveProduct(p); }));
+    if (btn) { btn.disabled = false; btn.textContent = "일괄 등록"; }
+    var succeeded = newProducts.filter(function (p, i) { return results[i]; });
+    succeeded.forEach(function (p) { state.products.unshift(p); });
+    var failedCount = newProducts.length - succeeded.length;
+    state.modal = null; state.addMode = "single";
+    toast(succeeded.length + "개 일괄 등록됨" + (failedCount ? ", " + failedCount + "개 실패" : ""));
+    render(); renderModal();
+  }
+
+  async function confirmBulkDelete() {
+    var ids = Object.keys(state.selectedIds);
+    var results = await Promise.all(ids.map(function (id) { return deleteProductRemote(id); }));
+    var succeededIds = ids.filter(function (id, i) { return results[i]; });
+    state.products = state.products.filter(function (p) { return succeededIds.indexOf(p.id) === -1; });
+    var failedCount = ids.length - succeededIds.length;
+    state.selectedIds = {};
+    state.modal = null;
+    toast(succeededIds.length + "개 삭제됨" + (failedCount ? ", " + failedCount + "개 실패" : ""));
+    render(); renderModal();
+  }
+
+  function exportBackup() {
+    var json = JSON.stringify(state.products, null, 2);
+    var blob = new Blob([json], { type: "application/json;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var d = new Date();
+    var stamp = d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+    a.href = url; a.download = "제품데이터_백업_" + stamp + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    toast("백업 파일을 저장했어요. (데이터는 이미 서버에 실시간 저장돼 있어요)");
+  }
+
+  // ---- 이벤트 위임 ----
+  document.addEventListener("click", function (e) {
+    var stop = e.target.closest("[data-stop]");
+    var actEl = e.target.closest("[data-act]");
+    if (!actEl) return;
+    var act = actEl.getAttribute("data-act");
+
+    if (act === "closeModal") {
+      // 오버레이 배경 클릭만 닫기 (내부 클릭은 data-stop 이 막음)
+      if (actEl.classList.contains("overlay") && !stop) { state.modal = null; renderModal(); }
+      else if (!actEl.classList.contains("overlay")) { state.modal = null; renderModal(); }
+      return;
+    }
+    if (act === "submitGate") {
+      var gv = (document.getElementById("gate-pw").value || "");
+      handleGateAttempt(gv);
+      return;
+    }
+    if (act === "closeGateWarning") {
+      var wr1 = document.getElementById("modal-root");
+      if (wr1) wr1.innerHTML = "";
+      var gi = document.getElementById("gate-pw");
+      if (gi) { gi.value = ""; gi.focus(); }
+      return;
+    }
+    if (act === "closeGateWiped") {
+      var wr2 = document.getElementById("modal-root");
+      if (wr2) wr2.innerHTML = "";
+      return;
+    }
+    if (act === "openPw") { state.modal = "pw"; renderModal(); return; }
+    if (act === "submitPw") {
+      var v = (document.getElementById("pw-input").value || "");
+      tryAdminLogin(v).then(function (ok) {
+        if (ok) { state.modal = null; state.mode = "admin"; state.query = ""; render(); renderModal(); }
+        else { var pe = document.getElementById("pw-err"); if (pe) pe.classList.remove("hidden"); }
+      });
+      return;
+    }
+    if (act === "exitAdmin") { state.mode = "search"; state.selectedIds = {}; state.query = ""; render(); return; }
+    if (act === "clearSearch") { state.query = ""; state._focusSearch = true; render(); return; }
+    if (act === "openAdd") { state.modal = "add"; state.addMode = "single"; pendingPhotos = []; pendingIngredients = []; state.excelRows = null; renderModal(); return; }
+    if (act === "tabSingle") { state.addMode = "single"; renderModal(); return; }
+    if (act === "tabBulk") { state.addMode = "bulk"; renderModal(); setTimeout(updateBulkPreview, 0); return; }
+    if (act === "tabExcel") { state.addMode = "excel"; renderModal(); return; }
+    if (act === "submitSingle") { submitSingle(); return; }
+    if (act === "submitBulk") { submitBulk(); return; }
+    if (act === "askBulkDelete") { state.modal = "bulkDelete"; renderModal(); return; }
+    if (act === "confirmBulkDelete") { confirmBulkDelete(); return; }
+    if (act === "export") { exportBackup(); return; }
+    if (act === "manualRefresh") { fetchProducts(true).then(function () { toast("최신 데이터로 갱신했어요"); }); return; }
+    if (act === "toggleAll") {
+      var list = manageList();
+      var allSel = list.length > 0 && list.every(function (p) { return state.selectedIds[p.id]; });
+      list.forEach(function (p) { if (allSel) delete state.selectedIds[p.id]; else state.selectedIds[p.id] = true; });
+      render(); return;
+    }
+    if (act === "toggleSel") {
+      var id = actEl.getAttribute("data-id");
+      if (state.selectedIds[id]) delete state.selectedIds[id]; else state.selectedIds[id] = true;
+      render(); return;
+    }
+    if (act === "viewPhotos") {
+      state.viewingId = actEl.getAttribute("data-id");
+      state.modal = "viewPhotos";
+      renderModal();
+      return;
+    }
+    if (act === "managePhotos") {
+      state.viewingId = actEl.getAttribute("data-id");
+      state.modal = "managePhotos";
+      renderModal();
+      return;
+    }
+    if (act === "addProductPhoto") {
+      var pid2 = actEl.getAttribute("data-id");
+      var input2 = document.querySelector('[data-photo-target="' + pid2 + '"]');
+      if (input2) input2.click();
+      return;
+    }
+    if (act === "removeProductPhoto") {
+      var rpid = actEl.getAttribute("data-id");
+      var ridx = parseInt(actEl.getAttribute("data-idx"), 10);
+      var rp = state.products.filter(function (x) { return x.id === rpid; })[0];
+      if (rp && rp.photos) {
+        var removedPhoto = rp.photos.splice(ridx, 1);
+        saveProduct(rp).then(function (ok) {
+          if (ok) { toast("사진 삭제됨"); } else { rp.photos.splice(ridx, 0, removedPhoto[0]); }
+          renderModal();
+          render();
+        });
+      }
+      return;
+    }
+    if (act === "pickNewPhotos") {
+      var fp = document.getElementById("f-photos");
+      if (fp) fp.click();
+      return;
+    }
+    if (act === "removePendingPhoto") {
+      var pidx = parseInt(actEl.getAttribute("data-idx"), 10);
+      pendingPhotos.splice(pidx, 1);
+      refreshPendingPhotosUI();
+      return;
+    }
+    if (act === "manageIngredients") {
+      state.viewingId = actEl.getAttribute("data-id");
+      state.modal = "manageIngredients";
+      renderModal();
+      return;
+    }
+    if (act === "addProductIngredient") {
+      var iid = actEl.getAttribute("data-id");
+      var inName = document.getElementById("ing-edit-name");
+      var inPct = document.getElementById("ing-edit-percent");
+      var iname = (inName && inName.value || "").trim();
+      var ipct = parseFloat(inPct && inPct.value);
+      if (!iname || isNaN(ipct)) { toast("원료명과 함량(%)을 입력해주세요."); return; }
+      var ip = state.products.filter(function (x) { return x.id === iid; })[0];
+      if (ip) {
+        ip.ingredients = ip.ingredients || [];
+        ip.ingredients.push({ name: iname, percent: ipct });
+        saveProduct(ip).then(function (ok) {
+          if (ok) toast('"' + ip.name + '"에 원료 추가됨');
+          renderModal();
+          render();
+        });
+      }
+      return;
+    }
+    if (act === "removeProductIngredient") {
+      var riid = actEl.getAttribute("data-id");
+      var riidx = parseInt(actEl.getAttribute("data-idx"), 10);
+      var rip = state.products.filter(function (x) { return x.id === riid; })[0];
+      if (rip && rip.ingredients) {
+        var removedIng = rip.ingredients.splice(riidx, 1);
+        saveProduct(rip).then(function (ok) {
+          if (!ok) rip.ingredients.splice(riidx, 0, removedIng[0]);
+          renderModal();
+          render();
+        });
+      }
+      return;
+    }
+    if (act === "addPendingIngredient") {
+      var pnName = document.getElementById("f-ing-name");
+      var pnPct = document.getElementById("f-ing-percent");
+      var pname = (pnName && pnName.value || "").trim();
+      var ppct = parseFloat(pnPct && pnPct.value);
+      if (!pname || isNaN(ppct)) { toast("원료명과 함량(%)을 입력해주세요."); return; }
+      pendingIngredients.push({ name: pname, percent: ppct });
+      if (pnName) pnName.value = "";
+      if (pnPct) pnPct.value = "";
+      refreshPendingIngredientsUI();
+      return;
+    }
+    if (act === "removePendingIngredient") {
+      var pridx = parseInt(actEl.getAttribute("data-idx"), 10);
+      pendingIngredients.splice(pridx, 1);
+      refreshPendingIngredientsUI();
+      return;
+    }
+    if (act === "toggleIngBulkNew") {
+      var wrapN = document.getElementById("ing-bulk-new-wrap");
+      if (wrapN) wrapN.classList.toggle("hidden");
+      return;
+    }
+    if (act === "toggleIngBulkEdit") {
+      var wrapE = document.getElementById("ing-bulk-edit-wrap");
+      if (wrapE) wrapE.classList.toggle("hidden");
+      return;
+    }
+    if (act === "addBulkIngredientsPending") {
+      var taN = document.getElementById("f-ing-bulk");
+      var rowsN = parseIngredientBulk(taN ? taN.value : "");
+      var validN = rowsN.filter(function (r) { return r.valid; });
+      if (!validN.length) { toast("추가할 원료가 없어요. 형식을 확인해주세요."); return; }
+      validN.forEach(function (r) { pendingIngredients.push({ name: r.name, percent: r.percent }); });
+      if (taN) taN.value = "";
+      refreshPendingIngredientsUI();
+      var skippedN = rowsN.length - validN.length;
+      toast(validN.length + "개 추가됨" + (skippedN ? ", " + skippedN + "개는 형식 오류로 건너뜀" : ""));
+      return;
+    }
+    if (act === "addBulkIngredientsProduct") {
+      var bpid = actEl.getAttribute("data-id");
+      var taE = document.getElementById("ing-edit-bulk");
+      var rowsE = parseIngredientBulk(taE ? taE.value : "");
+      var validE = rowsE.filter(function (r) { return r.valid; });
+      if (!validE.length) { toast("추가할 원료가 없어요. 형식을 확인해주세요."); return; }
+      var bp = state.products.filter(function (x) { return x.id === bpid; })[0];
+      if (bp) {
+        bp.ingredients = bp.ingredients || [];
+        validE.forEach(function (r) { bp.ingredients.push({ name: r.name, percent: r.percent }); });
+        var skippedE = rowsE.length - validE.length;
+        saveProduct(bp).then(function (ok) {
+          if (ok) toast(validE.length + "개 추가됨" + (skippedE ? ", " + skippedE + "개는 형식 오류로 건너뜀" : ""));
+          renderModal();
+          render();
+        });
+      }
+      return;
+    }
+    if (act === "pickExcelFile") {
+      var fe = document.getElementById("f-excel");
+      if (fe) fe.click();
+      return;
+    }
+    if (act === "downloadExcelTemplate") {
+      if (!window.XLSX) { toast("엑셀 기능을 불러오지 못했어요. 인터넷 연결을 확인해주세요."); return; }
+      var tmplData = [
+        { "id": "", "업체명": "롯데마트", "제품명": "매운 김치왕만두", "구분": "만두", "알당중량": 32, "비고": "국내산 김치 사용", "원료": "돼지고기:35,양배추:20" }
+      ];
+      var tmplWs = XLSX.utils.json_to_sheet(tmplData);
+      var tmplWb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(tmplWb, tmplWs, "템플릿");
+      XLSX.writeFile(tmplWb, "제품등록_템플릿.xlsx");
+      return;
+    }
+    if (act === "exportExcelCurrent") {
+      if (!window.XLSX) { toast("엑셀 기능을 불러오지 못했어요. 인터넷 연결을 확인해주세요."); return; }
+      var curData = state.products.map(function (p) {
+        var ingStr = (p.ingredients || []).map(function (ing) { return ing.name + ":" + ing.percent; }).join(",");
+        return { "id": p.id, "업체명": p.vendor, "제품명": p.name, "구분": p.type, "알당중량": p.weight, "비고": p.note || "", "원료": ingStr };
+      });
+      var curWs = XLSX.utils.json_to_sheet(curData);
+      var curWb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(curWb, curWs, "제품목록");
+      var d = new Date();
+      var stamp2 = d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+      XLSX.writeFile(curWb, "제품데이터_" + stamp2 + ".xlsx");
+      return;
+    }
+    if (act === "applyExcelImport") {
+      if (!state.excelRows) return;
+      var xbtn = document.querySelector('[data-act="applyExcelImport"]');
+      if (xbtn) { xbtn.disabled = true; xbtn.textContent = "저장 중..."; }
+      (async function () {
+        var toSave = [];
+        state.excelRows.forEach(function (row) {
+          if (!row.valid) return;
+          if (row.action === "update" && row.matchedProduct) {
+            var mp2 = row.matchedProduct;
+            if (row.vendor) mp2.vendor = row.vendor;
+            mp2.name = row.name;
+            mp2.type = row.type;
+            mp2.weight = row.weightNum;
+            if (row.note !== undefined) mp2.note = row.note;
+            if (row.ingredients !== undefined) mp2.ingredients = row.ingredients;
+            toSave.push({ product: mp2, isNew: false });
+          } else {
+            var np = {
+              id: nextId(), vendor: row.vendor || "미기입", name: row.name, type: row.type,
+              weight: row.weightNum, note: row.note !== undefined ? row.note : "",
+              ingredients: row.ingredients !== undefined ? row.ingredients : [], photos: []
+            };
+            toSave.push({ product: np, isNew: true });
+          }
+        });
+        var results = await Promise.all(toSave.map(function (item) { return saveProduct(item.product); }));
+        var newN = 0, updN = 0, failN = 0;
+        toSave.forEach(function (item, i) {
+          if (!results[i]) { failN++; return; }
+          if (item.isNew) { state.products.unshift(item.product); newN++; }
+          else { updN++; }
+        });
+        state.excelRows = null;
+        state.modal = null;
+        toast(newN + "개 신규 등록, " + updN + "개 수정됨" + (failN ? ", " + failN + "개 실패" : ""));
+        render(); renderModal();
+      })();
+      return;
+    }
+    if (act === "resetExcelImport") {
+      state.excelRows = null;
+      renderModal();
+      return;
+    }
+  });
+
+  // 검색 입력: 전체 render 대신 결과 영역만 갱신 (한글 조합 깨짐 방지)
+  document.addEventListener("input", function (e) {
+    if (e.target && e.target.id === "search-input") {
+      state.query = e.target.value;
+      updateResultsOnly();
+    } else if (e.target && e.target.id === "bulk-text") {
+      updateBulkPreview();
+    }
+  });
+
+  // 제품 사진 파일 선택 처리 (최대 3장)
+  var PHOTO_MAX_BYTES = 10 * 1024 * 1024; // 장당 10MB
+  function readFileAsDataUrl(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(reader.result); };
+      reader.onerror = function () { reject(new Error("read failed")); };
+      reader.readAsDataURL(file);
+    });
+  }
+  document.addEventListener("change", function (e) {
+    var el = e.target;
+    if (!el || el.type !== "file") return;
+
+    if (el.id === "f-excel") {
+      var xf = el.files && el.files[0];
+      if (!xf) return;
+      if (!window.XLSX) { toast("엑셀 기능을 불러오지 못했어요. 인터넷 연결을 확인해주세요."); el.value = ""; return; }
+      var xreader = new FileReader();
+      xreader.onload = function () {
+        try {
+          var wb = XLSX.read(new Uint8Array(xreader.result), { type: "array" });
+          var wsName = wb.SheetNames[0];
+          var jsonRows = XLSX.utils.sheet_to_json(wb.Sheets[wsName], { defval: "" });
+          if (!jsonRows.length) { toast("시트에서 데이터를 찾지 못했어요."); return; }
+          state.excelRows = buildExcelRows(jsonRows);
+          renderModal();
+        } catch (err) {
+          toast("엑셀 파일을 읽는 중 문제가 생겼어요. 형식을 확인해주세요.");
+        }
+      };
+      xreader.onerror = function () { toast("파일을 읽는 중 문제가 생겼어요."); };
+      xreader.readAsArrayBuffer(xf);
+      el.value = "";
+      return;
+    }
+
+    var isNew = el.id === "f-photos";
+    var targetId = el.getAttribute("data-photo-target");
+    if (!isNew && !targetId) return;
+
+    var files = el.files ? Array.prototype.slice.call(el.files) : [];
+    if (!files.length) return;
+
+    var currentCount = isNew ? pendingPhotos.length :
+      (function () { var p = state.products.filter(function (x) { return x.id === targetId; })[0]; return p && p.photos ? p.photos.length : 0; })();
+    var room = PHOTO_MAX - currentCount;
+    if (room <= 0) {
+      toast("사진은 최대 " + PHOTO_MAX + "장까지만 등록할 수 있어요.");
+      el.value = "";
+      return;
+    }
+    var tooBig = files.some(function (f) { return f.size > PHOTO_MAX_BYTES; });
+    if (tooBig) {
+      toast("사진 한 장의 용량이 너무 커요 (10MB 이하로 올려주세요).");
+      el.value = "";
+      return;
+    }
+    if (files.length > room) {
+      toast("최대 " + PHOTO_MAX + "장까지만 담겨서 앞에서부터 " + room + "장만 추가했어요.");
+      files = files.slice(0, room);
+    }
+
+    Promise.all(files.map(readFileAsDataUrl)).then(function (dataUrls) {
+      if (isNew) {
+        dataUrls.forEach(function (d) { pendingPhotos.push({ data: d }); });
+        refreshPendingPhotosUI();
+      } else {
+        var p = state.products.filter(function (x) { return x.id === targetId; })[0];
+        if (p) {
+          var prevPhotos = p.photos ? p.photos.slice() : [];
+          p.photos = (p.photos || []).concat(dataUrls);
+          saveProduct(p).then(function (ok) {
+            if (ok) { toast('"' + p.name + '"에 사진 저장됨'); } else { p.photos = prevPhotos; }
+            renderModal();
+            render();
+          });
+        }
+      }
+    }).catch(function () {
+      toast("사진을 읽는 중 문제가 생겼어요. 다시 시도해주세요.");
+    });
+  });
+
+  // 엔터로 비밀번호 제출
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && e.target && e.target.id === "gate-pw") {
+      handleGateAttempt(e.target.value || "");
+    }
+    if (e.key === "Enter" && e.target && e.target.id === "pw-input") {
+      var v = (e.target.value || "");
+      tryAdminLogin(v).then(function (ok) {
+        if (ok) { state.modal = null; state.mode = "admin"; state.query = ""; render(); renderModal(); }
+        else { var el = document.getElementById("pw-err"); if (el) el.classList.remove("hidden"); }
+      });
+    }
+  });
+
+  // 비고 인라인 수정 저장 (blur)
+  document.addEventListener("blur", function (e) {
+    if (e.target && e.target.getAttribute && e.target.getAttribute("data-note-id")) {
+      var id = e.target.getAttribute("data-note-id");
+      var val = (e.target.value || "").trim();
+      var p = state.products.filter(function (x) { return x.id === id; })[0];
+      if (p && p.note !== val) {
+        var prevNote = p.note;
+        p.note = val;
+        saveProduct(p).then(function (ok) {
+          if (ok) toast("비고 저장됨"); else { p.note = prevNote; e.target.value = prevNote; }
+        });
+      }
+      return;
+    }
+    var fid = e.target && e.target.getAttribute && e.target.getAttribute("data-field-id");
+    if (fid) {
+      var field = e.target.getAttribute("data-field");
+      var fp = state.products.filter(function (x) { return x.id === fid; })[0];
+      if (!fp) return;
+      if (field === "name") {
+        var nv = (e.target.value || "").trim();
+        if (!nv) { toast("제품명은 비워둘 수 없어요."); e.target.value = fp.name; return; }
+        if (fp.name !== nv) {
+          var prevName = fp.name;
+          fp.name = nv;
+          e.target.value = nv;
+          saveProduct(fp).then(function (ok) {
+            if (ok) toast("제품명 저장됨"); else { fp.name = prevName; e.target.value = prevName; }
+          });
+        }
+      } else if (field === "vendor") {
+        var vv = (e.target.value || "").trim() || "미기입";
+        e.target.value = vv;
+        if (fp.vendor !== vv) {
+          var prevVendor = fp.vendor;
+          fp.vendor = vv;
+          saveProduct(fp).then(function (ok) {
+            if (ok) toast("업체명 저장됨"); else { fp.vendor = prevVendor; e.target.value = prevVendor; }
+          });
+        }
+      } else if (field === "weight") {
+        var wv = parseFloat(e.target.value);
+        if (isNaN(wv) || wv <= 0) { toast("알당중량은 숫자로 입력해주세요."); e.target.value = fp.weight; return; }
+        e.target.value = wv;
+        if (fp.weight !== wv) {
+          var prevWeight = fp.weight;
+          fp.weight = wv;
+          saveProduct(fp).then(function (ok) {
+            if (ok) toast("알당중량 저장됨"); else { fp.weight = prevWeight; e.target.value = prevWeight; }
+          });
+        }
+      }
+    }
+  }, true);
+
+  // 구분(만두/김말이) 선택은 change 시 바로 저장
+  document.addEventListener("change", function (e) {
+    var sel = e.target;
+    if (!sel || !sel.matches || !sel.matches(".mcard-meta-select")) return;
+    var sid = sel.getAttribute("data-field-id");
+    var sp = state.products.filter(function (x) { return x.id === sid; })[0];
+    if (sp && sp.type !== sel.value) {
+      var prevType = sp.type;
+      sp.type = sel.value;
+      saveProduct(sp).then(function (ok) {
+        if (ok) toast("구분 저장됨"); else { sp.type = prevType; sel.value = prevType; }
+      });
+    }
+  });
+
+  // ---- 시작 ----
+  renderGate();
+})();
+</script>
+
+
+<div id="modal-root"></div><div id="toast" class="toast hidden"></div></body></html>
