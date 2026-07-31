@@ -245,8 +245,8 @@
     });
   }
 
-  // ---- 30분마다 자동으로 다시 입장 비밀번호를 물어봄 ----
-  var SESSION_LIMIT_MS = 30 * 60 * 1000;
+  // ---- 10분마다 자동으로 다시 입장 비밀번호를 물어봄 ----
+  var SESSION_LIMIT_MS = 10 * 60 * 1000;
   var sessionLockTimer = null;
   var sessionCountdownTimer = null;
   var sessionDeadline = null;
@@ -285,10 +285,10 @@
     var mr = document.getElementById("modal-root");
     if (mr) mr.innerHTML = "";
     renderGate();
-    toast("30분 동안 조작이 없어 다시 로그인해주세요.");
+    toast("10분 동안 조작이 없어 다시 로그인해주세요.");
   }
 
-  // 클릭/입력/터치가 있을 때마다 30분 타이머를 리셋 (조작 없을 때만 카운트다운)
+  // 클릭/입력/터치가 있을 때마다 10분 타이머를 리셋 (조작 없을 때만 카운트다운)
   function resetSessionTimerIfActive() {
     if (appUnlocked) startSessionTimer();
   }
