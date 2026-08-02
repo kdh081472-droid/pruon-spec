@@ -21,13 +21,13 @@
   ::placeholder { color: #A69C8C; }
   button { cursor: pointer; }
 
-  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
-  .header-left { display: flex; gap: 10px; align-items: center; }
+  header { display: flex; flex-direction: column-reverse; gap: 12px; margin-bottom: 18px; }
+  .header-left { display: flex; gap: 10px; align-items: center; min-width: 0; }
   .stamp { width: 34px; height: 34px; border-radius: 8px; background: #B8622B; color: #FAF7F2; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .eyebrow { font-size: 11px; letter-spacing: 0.06em; color: #A69C8C; font-weight: 600; margin-bottom: 2px; }
   .session-countdown { font-size: 10.5px; color: #C4A48A; margin-top: 3px; font-variant-numeric: tabular-nums; }
-  h1 { font-size: 18px; font-weight: 700; line-height: 1.2; }
-  .header-btns { display: flex; gap: 7px; }
+  h1 { font-size: 18px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+  .header-btns { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
   .btn-admin { display: flex; align-items: center; gap: 4px; background: #FFF; color: #6B5D4A; border: 1.5px solid #E5DFD3; border-radius: 8px; padding: 8px 11px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
   .btn-add { display: flex; align-items: center; gap: 5px; background: #2B2620; color: #FAF7F2; border: none; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
   .btn-done { background: #B8622B; color: #FFF; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; }
@@ -858,6 +858,14 @@
           sh += '<div class="stats-list-row"><span class="stats-list-rank">' + (idx + 1) + '</span><span class="stats-list-name">' + esc(p.product_name) + '</span><span class="stats-list-cnt">' + esc(p.cnt) + '회</span></div>';
         });
         if (!(d.top_products || []).length) sh += '<div class="photo-hint">아직 조회 기록이 없어요.</div>';
+        sh += '</div>';
+
+        sh += '<div class="stats-chart-label" style="margin-top:18px">결과 없었던 검색어 <span style="font-weight:400;color:#A69C8C">(등록 안 됐거나 오타일 수 있어요)</span></div>';
+        sh += '<div class="stats-list">';
+        (d.zero_result_queries || []).forEach(function (q, idx) {
+          sh += '<div class="stats-list-row"><span class="stats-list-rank">' + (idx + 1) + '</span><span class="stats-list-name">' + esc(q.query) + '</span><span class="stats-list-cnt">' + esc(q.cnt) + '회</span></div>';
+        });
+        if (!(d.zero_result_queries || []).length) sh += '<div class="photo-hint">결과 없는 검색이 없었어요.</div>';
         sh += '</div>';
       }
       sh += '</div></div>';
