@@ -128,6 +128,23 @@
   .photo-file-btn { flex-shrink: 0; display: flex; align-items: center; gap: 5px; background: #FFF; color: #6B5D4A; border: 1.5px solid #E5DFD3; border-radius: 8px; padding: 8px 11px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
   .photo-file-status { font-size: 12px; color: #8A8071; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
   .photo-hint { font-size: 12px; color: #8A8071; line-height: 1.6; margin-top: 6px; }
+
+  .tool-row { width: 100%; display: flex; align-items: center; gap: 12px; background: #FAF7F2; border: 1.5px solid #E5DFD3; border-radius: 12px; padding: 14px; margin-bottom: 10px; text-align: left; color: #B8622B; }
+  .tool-row-title { font-size: 14px; font-weight: 700; color: #2B2620; }
+  .tool-row-sub { font-size: 12px; color: #8A8071; margin-top: 2px; }
+  .stats-summary-row { display: flex; gap: 8px; margin: 14px 0; }
+  .stats-summary-pill { flex: 1; text-align: center; background: #F3E6DA; color: #B8622B; border-radius: 10px; padding: 12px 6px; font-size: 12px; font-weight: 700; }
+  .stats-summary-num { display: block; font-size: 22px; margin-bottom: 2px; }
+  .stats-chart-label { font-size: 12.5px; font-weight: 700; color: #6B5D4A; margin-bottom: 8px; }
+  .stats-chart { display: flex; align-items: flex-end; gap: 3px; height: 76px; padding: 0 2px; overflow-x: auto; }
+  .stats-bar-col { flex: 1; min-width: 6px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .stats-bar { width: 100%; max-width: 16px; background: #B8622B; border-radius: 3px 3px 0 0; }
+  .stats-bar-label { font-size: 8px; color: #A69C8C; margin-top: 3px; white-space: nowrap; }
+  .stats-list { display: flex; flex-direction: column; gap: 2px; }
+  .stats-list-row { display: flex; align-items: center; gap: 8px; padding: 8px 4px; border-bottom: 1px solid #F0EBE0; font-size: 13px; }
+  .stats-list-rank { flex-shrink: 0; width: 18px; color: #A69C8C; font-weight: 700; font-size: 12px; }
+  .stats-list-name { flex: 1; color: #2B2620; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stats-list-cnt { flex-shrink: 0; color: #B8622B; font-weight: 700; font-size: 12px; }
   .photo-pending-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
   .photo-pending-item { position: relative; width: 56px; height: 56px; }
   .photo-pending-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1.5px solid #E5DFD3; }
@@ -201,7 +218,9 @@
     layers: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D9D2C7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>',
     camera: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/></svg>',
     percent: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>',
-    refresh: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M8 16H3v5"/></svg>'
+    refresh: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M8 16H3v5"/></svg>',
+    gear: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>',
+    chart: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>'
   };
 
   // ---- 상태 ----
@@ -211,9 +230,11 @@
     mode: "search",      // "search" | "admin"
     selectedIds: {},     // id -> true
     addMode: "single",   // "single" | "bulk"
-    modal: null,         // null | "pw" | "add" | "bulkDelete" | "viewPhotos" | "managePhotos" | "manageIngredients"
+    modal: null,         // null | "pw" | "add" | "bulkDelete" | "viewPhotos" | "managePhotos" | "manageIngredients" | "adminTools" | "usageStats" | "changeGatePw"
     viewingId: null,      // 사진/원료 관리로 보고 있는 제품 id
-    excelRows: null       // 엑셀 업로드 미리보기 데이터
+    excelRows: null,      // 엑셀 업로드 미리보기 데이터
+    statsDays: 30,        // 사용 통계 조회 기간
+    statsData: null       // 사용 통계 결과 캐시
   };
 
   // 신규 등록 폼에서 선택한 사진들(base64 data URL, 최대 3장) 임시 저장
@@ -370,6 +391,17 @@
     }
   }
 
+  async function loadUsageStats() {
+    try {
+      var res = await db.rpc("get_usage_stats", { admin_pw: sessionAdminPw, days: state.statsDays });
+      if (res.error) { toast("통계 조회 실패: " + (res.error.message || "")); return; }
+      state.statsData = res.data;
+      if (state.modal === "usageStats") renderModal();
+    } catch (e) {
+      toast("통계를 불러오지 못했어요.");
+    }
+  }
+
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -497,6 +529,7 @@
     if (state.mode === "admin") {
       html += '<div class="header-btns">';
       html += '<button class="btn-export" data-act="manualRefresh">' + ICON.refresh + '</button>';
+      html += '<button class="btn-export" data-act="openAdminTools">' + ICON.gear + '</button>';
       html += '<button class="btn-export" data-act="export">' + ICON.download + '백업</button>';
       html += '<button class="btn-add" data-act="openAdd">' + ICON.plus + '등록</button>';
       html += '<button class="btn-done" data-act="exitAdmin">완료</button>';
@@ -751,6 +784,84 @@
         '<button type="button" class="submit-btn" style="margin-top:0" data-act="addBulkIngredientsProduct" data-id="' + esc(mi.id) + '">일괄 추가</button>' +
         '</div>' +
         '</div></div>';
+    } else if (state.modal === "adminTools") {
+      wrap.innerHTML =
+        '<div class="overlay" data-act="closeModal">' +
+        '<div class="modal" data-stop="1">' +
+        '<div class="modal-header"><div class="modal-title">관리 도구</div>' +
+        '<button class="icon-btn" data-act="closeModal">' + ICON.x + '</button></div>' +
+        '<button type="button" class="tool-row" data-act="openUsageStats">' + ICON.chart + '<div><div class="tool-row-title">사용 통계</div><div class="tool-row-sub">검색·조회 현황을 기간별로 확인</div></div></button>' +
+        '<button type="button" class="tool-row" data-act="openChangeGatePw">' + ICON.lock + '<div><div class="tool-row-title">입장 비밀번호 변경</div><div class="tool-row-sub">사내 공유용 비밀번호(428)를 바꿔요</div></div></button>' +
+        '</div></div>';
+    } else if (state.modal === "changeGatePw") {
+      wrap.innerHTML =
+        '<div class="overlay" data-act="closeModal">' +
+        '<div class="modal" data-stop="1">' +
+        '<div class="modal-header"><div class="modal-title">입장 비밀번호 변경</div>' +
+        '<button class="icon-btn" data-act="closeModal">' + ICON.x + '</button></div>' +
+        '<label class="field-label">새 비밀번호</label>' +
+        '<input id="new-gate-pw" class="field-input" inputmode="numeric" placeholder="새 비밀번호" />' +
+        '<label class="field-label">새 비밀번호 확인</label>' +
+        '<input id="new-gate-pw-confirm" class="field-input" inputmode="numeric" placeholder="한 번 더 입력" />' +
+        '<div id="gate-pw-change-err" class="pw-err-text hidden">비밀번호가 서로 달라요.</div>' +
+        '<div class="photo-hint">바꾸면 지금부터 새로 입장하는 사람은 새 비밀번호를 써야 해요. 영업팀에 꼭 공지해주세요.</div>' +
+        '<button type="button" class="submit-btn" data-act="submitChangeGatePw">비밀번호 변경</button>' +
+        '</div></div>';
+    } else if (state.modal === "usageStats") {
+      var days = state.statsDays;
+      var sh = '<div class="overlay" data-act="closeModal">' +
+        '<div class="modal" data-stop="1">' +
+        '<div class="modal-header"><div class="modal-title">사용 통계</div>' +
+        '<button class="icon-btn" data-act="closeModal">' + ICON.x + '</button></div>' +
+        '<div class="tab-row">' +
+        '<button class="tab-btn' + (days === 7 ? " on" : "") + '" data-act="statsPeriod" data-days="7">7일</button>' +
+        '<button class="tab-btn' + (days === 30 ? " on" : "") + '" data-act="statsPeriod" data-days="30">30일</button>' +
+        '<button class="tab-btn' + (days === 90 ? " on" : "") + '" data-act="statsPeriod" data-days="90">90일</button>' +
+        '</div>';
+
+      if (!state.statsData) {
+        sh += '<div class="photo-hint" style="margin-top:14px">불러오는 중...</div>';
+      } else {
+        var d = state.statsData;
+        sh += '<div class="stats-summary-row">';
+        sh += '<div class="stats-summary-pill"><span class="stats-summary-num">' + d.total_searches + '</span>검색 횟수</div>';
+        sh += '<div class="stats-summary-pill"><span class="stats-summary-num">' + d.total_views + '</span>제품 노출 횟수</div>';
+        sh += '</div>';
+
+        // 일별 검색 추이 (간단한 막대 그래프)
+        var daily = d.daily || [];
+        var maxVal = 1;
+        daily.forEach(function (row) { if (row.searches > maxVal) maxVal = row.searches; });
+        sh += '<div class="stats-chart-label">일별 검색 추이</div>';
+        sh += '<div class="stats-chart">';
+        daily.forEach(function (row) {
+          var h = Math.max(3, Math.round((row.searches / maxVal) * 56));
+          sh += '<div class="stats-bar-col" title="' + esc(row.day) + ': ' + esc(row.searches) + '">' +
+            '<div class="stats-bar" style="height:' + h + 'px"></div>' +
+            (daily.length <= 14 ? '<div class="stats-bar-label">' + esc(row.day.slice(0, 5)) + '</div>' : '') +
+            '</div>';
+        });
+        if (!daily.length) sh += '<div class="photo-hint">데이터가 없어요.</div>';
+        sh += '</div>';
+
+        sh += '<div class="stats-chart-label" style="margin-top:18px">많이 검색된 검색어</div>';
+        sh += '<div class="stats-list">';
+        (d.top_queries || []).forEach(function (q, idx) {
+          sh += '<div class="stats-list-row"><span class="stats-list-rank">' + (idx + 1) + '</span><span class="stats-list-name">' + esc(q.query) + '</span><span class="stats-list-cnt">' + esc(q.cnt) + '회</span></div>';
+        });
+        if (!(d.top_queries || []).length) sh += '<div class="photo-hint">아직 검색 기록이 없어요.</div>';
+        sh += '</div>';
+
+        sh += '<div class="stats-chart-label" style="margin-top:18px">많이 조회된 제품</div>';
+        sh += '<div class="stats-list">';
+        (d.top_products || []).forEach(function (p, idx) {
+          sh += '<div class="stats-list-row"><span class="stats-list-rank">' + (idx + 1) + '</span><span class="stats-list-name">' + esc(p.product_name) + '</span><span class="stats-list-cnt">' + esc(p.cnt) + '회</span></div>';
+        });
+        if (!(d.top_products || []).length) sh += '<div class="photo-hint">아직 조회 기록이 없어요.</div>';
+        sh += '</div>';
+      }
+      sh += '</div></div>';
+      wrap.innerHTML = sh;
     }
   }
 
@@ -1133,6 +1244,42 @@
       return;
     }
     if (act === "openPw") { state.modal = "pw"; renderModal(); return; }
+    if (act === "openAdminTools") { state.modal = "adminTools"; renderModal(); return; }
+    if (act === "openChangeGatePw") { state.modal = "changeGatePw"; renderModal(); return; }
+    if (act === "openUsageStats") {
+      state.modal = "usageStats";
+      state.statsData = null;
+      renderModal();
+      loadUsageStats();
+      return;
+    }
+    if (act === "statsPeriod") {
+      state.statsDays = parseInt(actEl.getAttribute("data-days"), 10);
+      state.statsData = null;
+      renderModal();
+      loadUsageStats();
+      return;
+    }
+    if (act === "submitChangeGatePw") {
+      var npw = (document.getElementById("new-gate-pw").value || "").trim();
+      var npw2 = (document.getElementById("new-gate-pw-confirm").value || "").trim();
+      if (!npw) { toast("새 비밀번호를 입력해주세요."); return; }
+      if (npw !== npw2) {
+        var gerr = document.getElementById("gate-pw-change-err");
+        if (gerr) gerr.classList.remove("hidden");
+        return;
+      }
+      var cbtn = actEl;
+      cbtn.disabled = true; cbtn.textContent = "변경 중...";
+      db.rpc("update_gate_pw", { admin_pw: sessionAdminPw, new_pw: npw }).then(function (res) {
+        cbtn.disabled = false; cbtn.textContent = "비밀번호 변경";
+        if (res.error) { toast("변경 실패: " + (res.error.message || "")); return; }
+        toast("입장 비밀번호가 변경됐어요. 영업팀에 새 비밀번호를 공지해주세요.");
+        state.modal = null;
+        renderModal();
+      });
+      return;
+    }
     if (act === "submitPw") {
       var v = (document.getElementById("pw-input").value || "");
       tryAdminLogin(v).then(function (ok) {
@@ -1387,10 +1534,31 @@
     if (e.target && e.target.id === "search-input") {
       state.query = e.target.value;
       updateResultsOnly();
+      scheduleSearchLog();
     } else if (e.target && e.target.id === "bulk-text") {
       updateBulkPreview();
     }
   });
+
+  // 검색어를 3초 이상 안 건드리거나, 검색창에서 포커스가 벗어나는 순간 그때의 검색어를 기록
+  // (느리게 타이핑해서 생기는 "김" "김말" 같은 중간 글자 기록을 막기 위함)
+  var searchLogTimer = null;
+  var lastLoggedQuery = "";
+  function flushSearchLog() {
+    if (searchLogTimer) { clearTimeout(searchLogTimer); searchLogTimer = null; }
+    if (state.mode !== "search" || !sessionGatePw) return;
+    var q = state.query.trim();
+    if (q.length < 2 || q === lastLoggedQuery) return;
+    lastLoggedQuery = q;
+    var list = filteredList().slice(0, 20);
+    var ids = list.map(function (p) { return p.id; });
+    var names = list.map(function (p) { return p.name; });
+    db.rpc("log_search", { pw: sessionGatePw, q: q, product_ids: ids, product_names: names }).catch(function () {});
+  }
+  function scheduleSearchLog() {
+    if (searchLogTimer) clearTimeout(searchLogTimer);
+    searchLogTimer = setTimeout(flushSearchLog, 3000);
+  }
 
   // 제품 사진 파일 선택 처리 (최대 3장)
   var PHOTO_MAX_BYTES = 10 * 1024 * 1024; // 장당 10MB
@@ -1492,6 +1660,10 @@
 
   // 비고 인라인 수정 저장 (blur)
   document.addEventListener("blur", function (e) {
+    if (e.target && e.target.id === "search-input") {
+      flushSearchLog();
+      return;
+    }
     if (e.target && e.target.getAttribute && e.target.getAttribute("data-note-id")) {
       var id = e.target.getAttribute("data-note-id");
       var val = (e.target.value || "").trim();
