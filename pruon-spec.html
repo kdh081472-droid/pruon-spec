@@ -234,7 +234,8 @@
     viewingId: null,      // 사진/원료 관리로 보고 있는 제품 id
     excelRows: null,      // 엑셀 업로드 미리보기 데이터
     statsDays: 30,        // 사용 통계 조회 기간
-    statsData: null       // 사용 통계 결과 캐시
+    statsData: null,       // 사용 통계 결과 캐시
+    restoreRows: null      // 백업 복구 미리보기 데이터
   };
 
   // 신규 등록 폼에서 선택한 사진들(base64 data URL, 최대 3장) 임시 저장
@@ -792,8 +793,34 @@
         '<button class="icon-btn" data-act="closeModal">' + ICON.x + '</button></div>' +
         '<button type="button" class="tool-row" data-act="openUsageStats">' + ICON.chart + '<div><div class="tool-row-title">사용 통계</div><div class="tool-row-sub">검색·조회 현황을 기간별로 확인</div></div></button>' +
         '<button type="button" class="tool-row" data-act="openChangeGatePw">' + ICON.lock + '<div><div class="tool-row-title">입장 비밀번호 변경</div><div class="tool-row-sub">사내 공유용 비밀번호(428)를 바꿔요</div></div></button>' +
+        '<button type="button" class="tool-row" data-act="openRestoreBackup">' + ICON.download + '<div><div class="tool-row-title">백업에서 복구</div><div class="tool-row-sub">JSON 백업 파일로 제품 데이터(사진 포함)를 되살려요</div></div></button>' +
         '</div></div>';
-    } else if (state.modal === "changeGatePw") {
+    } else if (state.modal === "restoreBackup") {
+      var rh = '<div class="overlay" data-act="closeModal">' +
+        '<div class="modal" data-stop="1">' +
+        '<div class="modal-header"><div class="modal-title">백업에서 복구</div>' +
+        '<button class="icon-btn" data-act="closeModal">' + ICON.x + '</button></div>' +
+        '<div class="photo-hint">"백업" 버튼으로 받아둔 JSON 파일을 선택하세요. 사진·원료까지 그대로 들어있어요.<br />id가 같은 제품은 <strong>덮어쓰기(수정)</strong>되고, 새로운 id는 <strong>새로 추가</strong>돼요. 지금 서버에만 있고 백업엔 없는 제품은 그대로 남아요(삭제되지 않아요).</div>' +
+        '<button type="button" class="excel-pick-btn" data-act="pickRestoreFile">' + ICON.upload + 'JSON 백업 파일 선택</button>' +
+        '<input type="file" id="f-restore" class="hidden" accept=".json,application/json" />';
+
+      if (state.restoreRows) {
+        rh += '<div class="excel-summary-row">' +
+          '<div class="excel-summary-pill new"><span class="excel-summary-num">' + state.restoreRows.length + '</span>복구할 제품</div>' +
+          '</div>';
+        rh += '<div class="bulk-list">';
+        state.restoreRows.slice(0, 30).forEach(function (p, idx) {
+          rh += '<div class="bulk-row"><span class="bulk-num">' + (idx + 1) + '</span><span class="bulk-text">' + esc(p.vendor || "-") + ' · ' + esc(p.name || "(이름 없음)") + '</span></div>';
+        });
+        if (state.restoreRows.length > 30) rh += '<div class="photo-hint">…외 ' + (state.restoreRows.length - 30) + '개 더</div>';
+        rh += '</div>';
+        rh += '<button type="button" class="submit-btn" data-act="applyRestore">' + state.restoreRows.length + '개 복구 적용하기</button>';
+        rh += '<button type="button" class="cancel-btn" style="width:100%;margin-top:8px" data-act="resetRestore">다시 선택</button>';
+      }
+      rh += '</div></div>';
+      wrap.innerHTML = rh;
+    }
+    else if (state.modal === "changeGatePw") {
       wrap.innerHTML =
         '<div class="overlay" data-act="closeModal">' +
         '<div class="modal" data-stop="1">' +
@@ -1254,6 +1281,30 @@
     if (act === "openPw") { state.modal = "pw"; renderModal(); return; }
     if (act === "openAdminTools") { state.modal = "adminTools"; renderModal(); return; }
     if (act === "openChangeGatePw") { state.modal = "changeGatePw"; renderModal(); return; }
+    if (act === "openRestoreBackup") { state.modal = "restoreBackup"; state.restoreRows = null; renderModal(); return; }
+    if (act === "pickRestoreFile") {
+      var rf = document.getElementById("f-restore");
+      if (rf) rf.click();
+      return;
+    }
+    if (act === "resetRestore") { state.restoreRows = null; renderModal(); return; }
+    if (act === "applyRestore") {
+      if (!state.restoreRows || !state.restoreRows.length) return;
+      var rows = state.restoreRows;
+      var rbtn = actEl;
+      rbtn.disabled = true; rbtn.textContent = "복구 중...";
+      (async function () {
+        var results = await Promise.all(rows.map(function (p) { return saveProduct(p); }));
+        var okN = results.filter(Boolean).length;
+        var failN = rows.length - okN;
+        await fetchProducts(false);
+        state.restoreRows = null;
+        state.modal = null;
+        toast(okN + "개 복구됨" + (failN ? ", " + failN + "개 실패" : ""));
+        render(); renderModal();
+      })();
+      return;
+    }
     if (act === "openUsageStats") {
       state.modal = "usageStats";
       state.statsData = null;
@@ -1585,6 +1636,34 @@
   document.addEventListener("change", function (e) {
     var el = e.target;
     if (!el || el.type !== "file") return;
+
+    if (el.id === "f-restore") {
+      var jf = el.files && el.files[0];
+      if (!jf) return;
+      var jreader = new FileReader();
+      jreader.onload = function () {
+        try {
+          var parsed = JSON.parse(jreader.result);
+          if (!Array.isArray(parsed)) { toast("이 파일은 올바른 백업 파일이 아니에요."); return; }
+          var cleaned = parsed.filter(function (p) { return p && p.id && p.name; }).map(function (p) {
+            return {
+              id: String(p.id), vendor: p.vendor || "미기입", name: p.name,
+              type: p.type || "만두", weight: parseFloat(p.weight) || 0,
+              note: p.note || "", ingredients: p.ingredients || [], photos: p.photos || []
+            };
+          });
+          if (!cleaned.length) { toast("파일 안에 복구할 제품이 없어요."); return; }
+          state.restoreRows = cleaned;
+          renderModal();
+        } catch (err) {
+          toast("파일을 읽지 못했어요. JSON 백업 파일이 맞는지 확인해주세요.");
+        }
+      };
+      jreader.onerror = function () { toast("파일을 읽는 중 문제가 생겼어요."); };
+      jreader.readAsText(jf);
+      el.value = "";
+      return;
+    }
 
     if (el.id === "f-excel") {
       var xf = el.files && el.files[0];
