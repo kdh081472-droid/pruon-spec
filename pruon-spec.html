@@ -1561,7 +1561,11 @@
     var list = filteredList().slice(0, 20);
     var ids = list.map(function (p) { return p.id; });
     var names = list.map(function (p) { return p.name; });
-    db.rpc("log_search", { pw: sessionGatePw, q: q, product_ids: ids, product_names: names }).catch(function () {});
+    db.rpc("log_search", { pw: sessionGatePw, q: q, product_ids: ids, product_names: names }).then(function (res) {
+      if (res.error) toast("검색 로그 오류: " + res.error.message);
+    }).catch(function (e) {
+      toast("검색 로그 예외: " + (e && e.message ? e.message : e));
+    });
   }
   function scheduleSearchLog() {
     if (searchLogTimer) clearTimeout(searchLogTimer);
