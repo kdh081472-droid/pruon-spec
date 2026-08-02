@@ -531,7 +531,6 @@
       html += '<div class="header-btns">';
       html += '<button class="btn-export" data-act="manualRefresh">' + ICON.refresh + '</button>';
       html += '<button class="btn-export" data-act="openAdminTools">' + ICON.gear + '</button>';
-      html += '<button class="btn-export" data-act="export">' + ICON.download + '백업</button>';
       html += '<button class="btn-add" data-act="openAdd">' + ICON.plus + '등록</button>';
       html += '<button class="btn-done" data-act="exitAdmin">완료</button>';
       html += '</div>';
@@ -791,6 +790,7 @@
         '<div class="modal" data-stop="1">' +
         '<div class="modal-header"><div class="modal-title">관리 도구</div>' +
         '<button class="icon-btn" data-act="closeModal">' + ICON.x + '</button></div>' +
+        '<button type="button" class="tool-row" data-act="export">' + ICON.download + '<div><div class="tool-row-title">백업</div><div class="tool-row-sub">현재 제품 데이터를 JSON 파일로 다운로드</div></div></button>' +
         '<button type="button" class="tool-row" data-act="openUsageStats">' + ICON.chart + '<div><div class="tool-row-title">사용 통계</div><div class="tool-row-sub">검색·조회 현황을 기간별로 확인</div></div></button>' +
         '<button type="button" class="tool-row" data-act="openChangeGatePw">' + ICON.lock + '<div><div class="tool-row-title">입장 비밀번호 변경</div><div class="tool-row-sub">사내 공유용 비밀번호(428)를 바꿔요</div></div></button>' +
         '<button type="button" class="tool-row" data-act="openRestoreBackup">' + ICON.download + '<div><div class="tool-row-title">백업에서 복구</div><div class="tool-row-sub">JSON 백업 파일로 제품 데이터(사진 포함)를 되살려요</div></div></button>' +
