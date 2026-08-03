@@ -262,14 +262,20 @@
       fetchProducts(false);
     }, 20000);
     document.addEventListener("visibilitychange", function () {
-      if (document.visibilityState === "visible" && appUnlocked && !isUserActivelyEditing()) {
-        fetchProducts(false);
-      }
+      if (document.visibilityState !== "visible") return;
+      checkSessionExpiry();
+      if (appUnlocked && !isUserActivelyEditing()) fetchProducts(false);
+    });
+    window.addEventListener("pageshow", function () {
+      checkSessionExpiry();
+    });
+    window.addEventListener("focus", function () {
+      checkSessionExpiry();
     });
   }
 
-  // ---- 10분마다 자동으로 다시 입장 비밀번호를 물어봄 ----
-  var SESSION_LIMIT_MS = 10 * 60 * 1000;
+  // ---- 5분마다 자동으로 다시 입장 비밀번호를 물어봄 ----
+  var SESSION_LIMIT_MS = 5 * 60 * 1000;
   var sessionLockTimer = null;
   var sessionCountdownTimer = null;
   var sessionDeadline = null;
@@ -284,13 +290,27 @@
     el.textContent = "자동 로그아웃까지 " + mins + ":" + (secs < 10 ? "0" : "") + secs;
   }
 
+  // 화면이 꺼졌다 켜지거나(백그라운드) 다른 앱에 갔다 돌아왔을 때,
+  // setTimeout이 밀리거나 안 돌아가는 모바일 브라우저 특성 때문에
+  // "지금 몇 시인지"로 직접 만료 여부를 다시 확인함
+  function checkSessionExpiry() {
+    if (!appUnlocked || !sessionDeadline) return;
+    if (Date.now() >= sessionDeadline) {
+      lockApp();
+    } else {
+      updateCountdownDisplay();
+    }
+  }
+
   function startSessionTimer() {
     if (sessionLockTimer) clearTimeout(sessionLockTimer);
     sessionDeadline = Date.now() + SESSION_LIMIT_MS;
     sessionLockTimer = setTimeout(lockApp, SESSION_LIMIT_MS);
     updateCountdownDisplay();
     if (!sessionCountdownTimer) {
-      sessionCountdownTimer = setInterval(updateCountdownDisplay, 1000);
+      sessionCountdownTimer = setInterval(function () {
+        checkSessionExpiry();
+      }, 1000);
     }
   }
 
@@ -308,10 +328,10 @@
     var mr = document.getElementById("modal-root");
     if (mr) mr.innerHTML = "";
     renderGate();
-    toast("10분 동안 조작이 없어 다시 로그인해주세요.");
+    toast("5분 동안 조작이 없어 다시 로그인해주세요.");
   }
 
-  // 클릭/입력/터치가 있을 때마다 10분 타이머를 리셋 (조작 없을 때만 카운트다운)
+  // 클릭/입력/터치가 있을 때마다 5분 타이머를 리셋 (조작 없을 때만 카운트다운)
   function resetSessionTimerIfActive() {
     if (appUnlocked) startSessionTimer();
   }
