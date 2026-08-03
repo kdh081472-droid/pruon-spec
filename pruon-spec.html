@@ -137,6 +137,9 @@
   .stats-summary-pill { flex: 1; text-align: center; background: #F3E6DA; color: #B8622B; border-radius: 10px; padding: 12px 6px; font-size: 12px; font-weight: 700; }
   .stats-summary-num { display: block; font-size: 22px; margin-bottom: 2px; }
   .stats-chart-label { font-size: 12.5px; font-weight: 700; color: #6B5D4A; margin-bottom: 8px; }
+  .stats-range-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .stats-range-row .field-input { flex: 1; padding: 10px 8px; font-size: 13px; }
+  .stats-range-sep { color: #A69C8C; font-size: 12px; flex-shrink: 0; }
   .stats-chart { display: flex; align-items: flex-end; gap: 3px; height: 76px; padding: 0 2px; overflow-x: auto; }
   .stats-bar-col { flex: 1; min-width: 6px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
   .stats-bar { width: 100%; max-width: 16px; background: #B8622B; border-radius: 3px 3px 0 0; }
@@ -234,7 +237,8 @@
     modal: null,         // null | "pw" | "add" | "bulkDelete" | "viewPhotos" | "managePhotos" | "manageIngredients" | "adminTools" | "usageStats" | "changeGatePw"
     viewingId: null,      // 사진/원료 관리로 보고 있는 제품 id
     excelRows: null,      // 엑셀 업로드 미리보기 데이터
-    statsDays: 30,        // 사용 통계 조회 기간
+    statsStart: null,     // 사용 통계 조회 시작일 (YYYY-MM-DD)
+    statsEnd: null,       // 사용 통계 조회 종료일 (YYYY-MM-DD)
     statsData: null,       // 사용 통계 결과 캐시
     restoreRows: null      // 백업 복구 미리보기 데이터
   };
@@ -429,9 +433,21 @@
     }
   }
 
+  function ymd(d) {
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+  function setStatsPresetDays(days) {
+    var end = new Date();
+    var start = new Date();
+    start.setDate(start.getDate() - (days - 1));
+    state.statsStart = ymd(start);
+    state.statsEnd = ymd(end);
+  }
+
   async function loadUsageStats() {
+    if (!state.statsStart || !state.statsEnd) setStatsPresetDays(30);
     try {
-      var res = await db.rpc("get_usage_stats", { admin_pw: sessionAdminPw, days: state.statsDays });
+      var res = await db.rpc("get_usage_stats", { admin_pw: sessionAdminPw, start_date: state.statsStart, end_date: state.statsEnd });
       if (res.error) { toast("통계 조회 실패: " + (res.error.message || "")); return; }
       state.statsData = res.data;
       if (state.modal === "usageStats") renderModal();
@@ -755,6 +771,16 @@
         '<button class="cancel-btn" data-act="closeModal">취소</button>' +
         '<button class="del-btn" data-act="confirmBulkDelete">삭제</button></div>' +
         '</div></div>';
+    } else if (state.modal === "confirmResetStats") {
+      wrap.innerHTML =
+        '<div class="overlay center" data-act="closeStatsConfirm">' +
+        '<div class="confirm-box" data-stop="1">' +
+        '<div class="confirm-title">통계 데이터를 초기화할까요?</div>' +
+        '<div class="confirm-text">지금까지 쌓인 검색·조회 로그가 전부 삭제돼요.<br />제품 데이터는 영향받지 않아요.<br />이 작업은 되돌릴 수 없어요.</div>' +
+        '<div class="confirm-btn-row">' +
+        '<button class="cancel-btn" data-act="closeStatsConfirm">취소</button>' +
+        '<button class="del-btn" data-act="confirmResetStatsRun">초기화</button></div>' +
+        '</div></div>';
     } else if (state.modal === "viewPhotos") {
       var vp = state.products.filter(function (x) { return x.id === state.viewingId; })[0];
       if (!vp || !vp.photos || !vp.photos.length) { wrap.innerHTML = ""; return; }
@@ -873,16 +899,21 @@
         '<button type="button" class="submit-btn" data-act="submitChangeGatePw">비밀번호 변경</button>' +
         '</div></div>';
     } else if (state.modal === "usageStats") {
-      var days = state.statsDays;
       var sh = '<div class="overlay" data-act="closeModal">' +
         '<div class="modal" data-stop="1">' +
         '<div class="modal-header"><div class="modal-title">사용 통계</div>' +
         '<button class="icon-btn" data-act="closeModal">' + ICON.x + '</button></div>' +
         '<div class="tab-row">' +
-        '<button class="tab-btn' + (days === 7 ? " on" : "") + '" data-act="statsPeriod" data-days="7">7일</button>' +
-        '<button class="tab-btn' + (days === 30 ? " on" : "") + '" data-act="statsPeriod" data-days="30">30일</button>' +
-        '<button class="tab-btn' + (days === 90 ? " on" : "") + '" data-act="statsPeriod" data-days="90">90일</button>' +
-        '</div>';
+        '<button class="tab-btn" data-act="statsPeriod" data-days="7">최근 7일</button>' +
+        '<button class="tab-btn" data-act="statsPeriod" data-days="30">최근 30일</button>' +
+        '<button class="tab-btn" data-act="statsPeriod" data-days="90">최근 90일</button>' +
+        '</div>' +
+        '<div class="stats-range-row">' +
+        '<input type="date" id="stats-start" class="field-input" value="' + esc(state.statsStart || "") + '" />' +
+        '<span class="stats-range-sep">~</span>' +
+        '<input type="date" id="stats-end" class="field-input" value="' + esc(state.statsEnd || "") + '" />' +
+        '</div>' +
+        '<button type="button" class="ing-add-btn" style="width:100%;margin-top:8px" data-act="applyCustomRange">이 기간으로 조회</button>';
 
       if (!state.statsData) {
         sh += '<div class="photo-hint" style="margin-top:14px">불러오는 중...</div>';
@@ -933,6 +964,7 @@
         if (!(d.zero_result_queries || []).length) sh += '<div class="photo-hint">결과 없는 검색이 없었어요.</div>';
         sh += '</div>';
       }
+      sh += '<button type="button" class="cancel-btn" style="width:100%;margin-top:20px;color:#B8462B;border-color:#E5C7BE" data-act="confirmResetStats">통계 데이터 초기화</button>';
       sh += '</div></div>';
       wrap.innerHTML = sh;
     }
@@ -1346,15 +1378,44 @@
     if (act === "openUsageStats") {
       state.modal = "usageStats";
       state.statsData = null;
+      if (!state.statsStart || !state.statsEnd) setStatsPresetDays(30);
       renderModal();
       loadUsageStats();
       return;
     }
     if (act === "statsPeriod") {
-      state.statsDays = parseInt(actEl.getAttribute("data-days"), 10);
+      var pdays = parseInt(actEl.getAttribute("data-days"), 10);
+      setStatsPresetDays(pdays);
       state.statsData = null;
       renderModal();
       loadUsageStats();
+      return;
+    }
+    if (act === "applyCustomRange") {
+      var s = document.getElementById("stats-start").value;
+      var en = document.getElementById("stats-end").value;
+      if (!s || !en) { toast("시작일과 종료일을 모두 선택해주세요."); return; }
+      if (s > en) { toast("시작일이 종료일보다 늦을 수 없어요."); return; }
+      state.statsStart = s;
+      state.statsEnd = en;
+      state.statsData = null;
+      renderModal();
+      loadUsageStats();
+      return;
+    }
+    if (act === "confirmResetStats") { state.modal = "confirmResetStats"; renderModal(); return; }
+    if (act === "closeStatsConfirm") { state.modal = "usageStats"; renderModal(); return; }
+    if (act === "confirmResetStatsRun") {
+      var rsBtn = actEl;
+      rsBtn.disabled = true; rsBtn.textContent = "초기화 중...";
+      db.rpc("clear_usage_stats", { admin_pw: sessionAdminPw }).then(function (res) {
+        if (res.error) { toast("초기화 실패: " + (res.error.message || "")); rsBtn.disabled = false; rsBtn.textContent = "초기화"; return; }
+        toast("통계 데이터가 초기화됐어요.");
+        state.modal = "usageStats";
+        state.statsData = null;
+        renderModal();
+        loadUsageStats();
+      });
       return;
     }
     if (act === "submitChangeGatePw") {
