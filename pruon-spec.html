@@ -116,6 +116,7 @@
   .del-btn { flex: 1; border: none; background: #B8462B; border-radius: 9px; padding: 11px; font-size: 14px; font-weight: 700; color: #FFF; }
   .ok-btn { flex: 1; border: none; background: #B8622B; border-radius: 9px; padding: 11px; font-size: 14px; font-weight: 700; color: #FFF; }
   .pw-icon { width: 44px; height: 44px; border-radius: 12px; background: #F3E6DA; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; color: #B8622B; }
+  .gate-admin-link { position: absolute; top: 0; right: 0; display: flex; align-items: center; gap: 5px; background: #FFF; border: 1.5px solid #E5DFD3; color: #8A8071; border-radius: 999px; padding: 8px 13px; font-size: 12.5px; font-weight: 600; }
   .pw-err-text { font-size: 12.5px; color: #B8462B; font-weight: 600; margin-top: 8px; text-align: center; }
   .hidden { display: none !important; }
 
@@ -392,6 +393,22 @@
     }
   }
 
+  async function fetchProductsAsAdmin() {
+    try {
+      var res = await db.rpc("get_products_admin", { admin_pw: sessionAdminPw });
+      if (res.error) { toast("제품 목록을 불러오지 못했어요: " + res.error.message); return; }
+      state.products = (res.data || []).map(function (row) {
+        return {
+          id: row.id, vendor: row.vendor, name: row.name, type: row.type,
+          weight: row.weight, note: row.note || "",
+          ingredients: row.ingredients || [], photos: row.photos || []
+        };
+      });
+    } catch (e) {
+      toast("서버에 연결하지 못했어요.");
+    }
+  }
+
   async function loadUsageStats() {
     try {
       var res = await db.rpc("get_usage_stats", { admin_pw: sessionAdminPw, days: state.statsDays });
@@ -445,13 +462,15 @@
   function renderGate() {
     var app = document.getElementById("app");
     app.innerHTML =
-      '<div style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2px;padding:20px 16px;">' +
+      '<div style="position:relative;min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2px;padding:20px 16px;">' +
+      '<button class="gate-admin-link" data-act="openPw">' + ICON.gear + '관리자</button>' +
       '<div class="pw-icon">' + ICON.lock + '</div>' +
       '<div class="confirm-title">비밀번호 확인</div>' +
       '<div class="confirm-text">사내 제품 스펙 자료예요.<br />비밀번호를 입력해주세요.</div>' +
       '<input id="gate-pw" class="field-input" type="password" inputmode="numeric" placeholder="••••" style="text-align:center;letter-spacing:0.3em;font-size:18px;max-width:220px" />' +
       '<div id="gate-err" class="pw-err-text hidden">비밀번호가 올바르지 않아요.</div>' +
       '<button class="ok-btn" style="margin-top:14px;max-width:220px;width:100%" data-act="submitGate">입장</button>' +
+      '<div class="photo-hint" style="margin-top:18px">입장 비밀번호를 잊으셨나요? 오른쪽 위 "관리자"로 들어가서 바꿀 수 있어요.</div>' +
       '</div>';
     setTimeout(function () { var i = document.getElementById("gate-pw"); if (i) i.focus(); }, 30);
   }
@@ -1341,9 +1360,23 @@
     }
     if (act === "submitPw") {
       var v = (document.getElementById("pw-input").value || "");
-      tryAdminLogin(v).then(function (ok) {
-        if (ok) { state.modal = null; state.mode = "admin"; state.query = ""; render(); renderModal(); }
-        else { var pe = document.getElementById("pw-err"); if (pe) pe.classList.remove("hidden"); }
+      var cameFromGate = !appUnlocked;
+      tryAdminLogin(v).then(async function (ok) {
+        if (!ok) {
+          var pe = document.getElementById("pw-err");
+          if (pe) pe.classList.remove("hidden");
+          return;
+        }
+        if (cameFromGate) {
+          appUnlocked = true;
+          await fetchProductsAsAdmin();
+          state.mode = "admin";
+          state.modal = null;
+          render(); renderModal();
+          startAutoRefresh(); startSessionTimer();
+        } else {
+          state.modal = null; state.mode = "admin"; state.query = ""; render(); renderModal();
+        }
       });
       return;
     }
@@ -1742,9 +1775,23 @@
     }
     if (e.key === "Enter" && e.target && e.target.id === "pw-input") {
       var v = (e.target.value || "");
-      tryAdminLogin(v).then(function (ok) {
-        if (ok) { state.modal = null; state.mode = "admin"; state.query = ""; render(); renderModal(); }
-        else { var el = document.getElementById("pw-err"); if (el) el.classList.remove("hidden"); }
+      var cameFromGate2 = !appUnlocked;
+      tryAdminLogin(v).then(async function (ok) {
+        if (!ok) {
+          var el = document.getElementById("pw-err");
+          if (el) el.classList.remove("hidden");
+          return;
+        }
+        if (cameFromGate2) {
+          appUnlocked = true;
+          await fetchProductsAsAdmin();
+          state.mode = "admin";
+          state.modal = null;
+          render(); renderModal();
+          startAutoRefresh(); startSessionTimer();
+        } else {
+          state.modal = null; state.mode = "admin"; state.query = ""; render(); renderModal();
+        }
       });
     }
   });
