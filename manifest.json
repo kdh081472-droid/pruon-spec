@@ -1,6 +1,6 @@
 {
-  "name": "제품 스펙 조회 - 푸르온식품연구소",
-  "short_name": "제품스펙조회",
+  "name": "푸르온 제품 스펙 조회",
+  "short_name": "푸르온 스펙조회",
   "start_url": "./pruon-spec.html",
   "scope": "./",
   "display": "standalone",
