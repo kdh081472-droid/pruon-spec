@@ -96,7 +96,10 @@
 
   .field-label { display: block; font-size: 12px; font-weight: 600; color: #6B5D4A; margin-top: 10px; margin-bottom: 5px; }
   .field-input { width: 100%; border: 1.5px solid #E5DFD3; border-radius: 9px; padding: 10px 12px; font-size: 14px; background: #FFF; color: #2B2620; outline: none; }
-  .masked-input { -webkit-text-security: disc; text-security: disc; }
+  .pw-input-wrap { position: relative; width: 100%; }
+  .pw-real-input { position: relative; color: transparent !important; caret-color: #2B2620; background: transparent; }
+  .pw-real-input::placeholder { color: #A69C8C; }
+  .pw-dots-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; font-size: 18px; letter-spacing: 0.3em; color: #2B2620; font-weight: 700; }
   .field-input.err { border-color: #B8462B; background: #FDF3F0; }
   .submit-btn { width: 100%; margin-top: 18px; background: #B8622B; color: #FFF; border: none; border-radius: 10px; padding: 13px; font-size: 14.5px; font-weight: 700; }
 
@@ -504,7 +507,10 @@
       '<div class="pw-icon">' + ICON.lock + '</div>' +
       '<div class="confirm-title">비밀번호 확인</div>' +
       '<div class="confirm-text">사내 제품 스펙 자료예요.<br />비밀번호를 입력해주세요.</div>' +
-      '<input id="gate-pw" class="field-input masked-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" placeholder="••••" style="text-align:center;letter-spacing:0.3em;font-size:18px;max-width:220px" />' +
+      '<div class="pw-input-wrap" style="max-width:220px;width:100%">' +
+      '<input id="gate-pw" class="field-input pw-real-input" type="tel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" placeholder="••••" style="text-align:center;letter-spacing:0.3em;font-size:18px" />' +
+      '<div id="gate-pw-dots" class="pw-dots-overlay"></div>' +
+      '</div>' +
       '<div id="gate-err" class="pw-err-text hidden">비밀번호가 올바르지 않아요.</div>' +
       '<button class="ok-btn" style="margin-top:14px;max-width:220px;width:100%" data-act="submitGate">입장</button>' +
       '</div>';
@@ -752,7 +758,10 @@
         '<div class="pw-icon">' + ICON.lock + '</div>' +
         '<div class="confirm-title">관리자 모드</div>' +
         '<div class="confirm-text">제품 등록·삭제는 관리자만 가능해요. 비밀번호를 입력해주세요.</div>' +
-        '<input id="pw-input" class="field-input masked-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" placeholder="••••" style="text-align:center;letter-spacing:0.3em;font-size:18px" />' +
+        '<div class="pw-input-wrap">' +
+        '<input id="pw-input" class="field-input pw-real-input" type="tel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" placeholder="••••" style="text-align:center;letter-spacing:0.3em;font-size:18px" />' +
+        '<div id="pw-input-dots" class="pw-dots-overlay"></div>' +
+        '</div>' +
         '<div id="pw-err" class="pw-err-text hidden">비밀번호가 올바르지 않아요.</div>' +
         '<div class="confirm-btn-row" style="margin-top:16px">' +
         '<button class="cancel-btn" data-act="closeModal">취소</button>' +
@@ -1342,6 +1351,8 @@
       if (wr1) wr1.innerHTML = "";
       var gi = document.getElementById("gate-pw");
       if (gi) { gi.value = ""; gi.focus(); }
+      var gd = document.getElementById("gate-pw-dots");
+      if (gd) gd.textContent = "";
       return;
     }
     if (act === "closeGateWiped") {
@@ -1710,6 +1721,9 @@
       scheduleSearchLog();
     } else if (e.target && e.target.id === "bulk-text") {
       updateBulkPreview();
+    } else if (e.target && (e.target.id === "gate-pw" || e.target.id === "pw-input")) {
+      var dotsEl = document.getElementById(e.target.id + "-dots");
+      if (dotsEl) dotsEl.textContent = "\u25CF".repeat(e.target.value.length);
     }
   });
 
