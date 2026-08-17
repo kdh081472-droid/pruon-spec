@@ -61,9 +61,10 @@
   .card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
   .card-name { font-size: 14.5px; font-weight: 700; }
   .card-vendor { font-size: 11.5px; color: #9AA095; flex-shrink: 0; }
-  .spec-row { display: flex; gap: 8px; align-items: center; }
+  .spec-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .spec-tag { font-size: 12px; background: #F1F2EE; color: #5B5F55; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
   .spec-weight { font-size: 14px; color: #EB6001; font-weight: 800; }
+  .spec-units { font-size: 13px; color: #00833E; font-weight: 800; }
   .note-box { margin-top: 10px; display: flex; gap: 8px; align-items: baseline; background: #F1F2EE; border-radius: 8px; padding: 8px 11px; }
   .note-label { font-size: 11px; font-weight: 700; color: #00833E; flex-shrink: 0; }
   .note-text { font-size: 13px; color: #4A4F45; line-height: 1.5; }
@@ -252,7 +253,7 @@
     mode: "search",      // "search" | "admin"
     selectedIds: {},     // id -> true
     addMode: "single",   // "single" | "bulk"
-    modal: null,         // null | "pw" | "add" | "bulkDelete" | "viewPhotos" | "managePhotos" | "manageIngredients" | "adminTools" | "usageStats" | "changeGatePw"
+    modal: null,         // null | "pw" | "add" | "bulkDelete" | "viewPhotos" | "managePhotos" | "manageIngredients" | "manageUnits" | "adminTools" | "usageStats" | "changeGatePw"
     viewingId: null,      // 사진/원료 관리로 보고 있는 제품 id
     excelRows: null,      // 엑셀 업로드 미리보기 데이터
     statsStart: null,     // 사용 통계 조회 시작일 (YYYY-MM-DD)
@@ -267,6 +268,9 @@
 
   // 신규 등록 폼에서 입력한 원료 함량 임시 저장
   var pendingIngredients = []; // [{ name, percent }]
+
+  // 신규 등록 폼에서 입력한 포장 단위 임시 저장 (한 포장지당 그램 수)
+  var pendingUnits = []; // [number] (g)
 
   function isUserActivelyEditing() {
     if (state.modal) return true; // 모달(등록/사진/원료 관리 등) 열려 있으면 건드리지 않음
@@ -376,7 +380,8 @@
         return {
           id: row.id, vendor: row.vendor, name: row.name, type: row.type,
           weight: row.weight, note: row.note || "",
-          ingredients: row.ingredients || [], photos: row.photos || []
+          ingredients: row.ingredients || [], photos: row.photos || [],
+          units: row.units || []
         };
       });
       render();
@@ -396,7 +401,8 @@
         p: {
           id: p.id, vendor: p.vendor, name: p.name, type: p.type,
           weight: p.weight, note: p.note || "",
-          ingredients: p.ingredients || [], photos: p.photos || []
+          ingredients: p.ingredients || [], photos: p.photos || [],
+          units: p.units || []
         }
       });
       if (res.error) { toast("저장 실패: " + res.error.message); return false; }
@@ -443,7 +449,8 @@
         return {
           id: row.id, vendor: row.vendor, name: row.name, type: row.type,
           weight: row.weight, note: row.note || "",
-          ingredients: row.ingredients || [], photos: row.photos || []
+          ingredients: row.ingredients || [], photos: row.photos || [],
+          units: row.units || []
         };
       });
     } catch (e) {
@@ -696,7 +703,11 @@
     list.forEach(function (p) {
       h += '<div class="card">';
       h += '<div class="card-top"><span class="card-name">' + esc(p.name) + '</span><span class="card-vendor">' + esc(p.vendor) + '</span></div>';
-      h += '<div class="spec-row"><span class="spec-tag">' + esc(p.type) + '</span><span class="spec-weight">' + esc(p.weight) + 'g / 알</span></div>';
+      h += '<div class="spec-row"><span class="spec-tag">' + esc(p.type) + '</span><span class="spec-weight">' + esc(p.weight) + 'g / 알</span>';
+      if (p.units && p.units.length) {
+        h += '<span class="spec-units">' + p.units.map(function (u) { return esc(u) + 'g'; }).join(', ') + '</span>';
+      }
+      h += '</div>';
       if (p.ingredients && p.ingredients.length) {
         h += '<div class="ing-row">';
         p.ingredients.forEach(function (ing) {
@@ -743,6 +754,7 @@
       h += '</div></div>';
       h += '<button class="mcard-photo-btn' + (p.photos && p.photos.length ? " has" : "") + '" data-act="managePhotos" data-id="' + esc(p.id) + '" data-stop="1">' + ICON.camera + (p.photos && p.photos.length ? p.photos.length + "/" + PHOTO_MAX : "사진") + '</button>';
       h += '<button class="mcard-ing-btn' + (p.ingredients && p.ingredients.length ? " has" : "") + '" data-act="manageIngredients" data-id="' + esc(p.id) + '" data-stop="1">' + ICON.percent + (p.ingredients && p.ingredients.length ? p.ingredients.length + "개" : "원료") + '</button>';
+      h += '<button class="mcard-ing-btn' + (p.units && p.units.length ? " has" : "") + '" data-act="manageUnits" data-id="' + esc(p.id) + '" data-stop="1">' + ICON.pkg + (p.units && p.units.length ? p.units.length + "개" : "포장단위") + '</button>';
       h += '</div>';
       h += '<div class="note-edit-row"><span class="note-edit-label">비고</span>';
       h += '<input class="note-edit-input" data-note-id="' + esc(p.id) + '" value="' + esc(p.note || "") + '" placeholder="비고 입력 후 벗어나면 저장" /></div>';
@@ -870,6 +882,36 @@
         '<div class="bulk-hint">한 줄에 하나씩, <strong>원료명</strong>과 <strong>%숫자</strong>를 입력하세요.<br />예: 돼지고기 35 / 돼지고기, 35 / 돼지고기 35% — 엑셀에서 두 칸을 복사해 붙여넣어도 인식돼요.</div>' +
         '<textarea id="ing-edit-bulk" class="bulk-textarea" rows="4" placeholder="돼지고기 35&#10;양배추 20&#10;당면 15"></textarea>' +
         '<button type="button" class="submit-btn" style="margin-top:0" data-act="addBulkIngredientsProduct" data-id="' + esc(mi.id) + '">일괄 추가</button>' +
+        '</div>' +
+        '</div></div>';
+    } else if (state.modal === "manageUnits") {
+      var mu = state.products.filter(function (x) { return x.id === state.viewingId; })[0];
+      if (!mu) { wrap.innerHTML = ""; return; }
+      mu.units = mu.units || [];
+      var uh = '<div class="ing-chip-list">';
+      mu.units.forEach(function (u, idx) {
+        uh += '<span class="ing-chip">' + esc(u) + 'g' +
+          '<button data-act="removeProductUnit" data-id="' + esc(mu.id) + '" data-idx="' + idx + '">' + ICON.x + '</button></span>';
+      });
+      uh += '</div>';
+      if (!mu.units.length) {
+        uh = '<div class="photo-hint" style="margin-top:0">아직 등록된 포장 단위가 없어요.</div>';
+      }
+      wrap.innerHTML =
+        '<div class="overlay" data-act="closeModal">' +
+        '<div class="modal" data-stop="1">' +
+        '<div class="modal-header"><div class="modal-title">' + esc(mu.name) + ' 포장 단위</div>' +
+        '<button class="icon-btn" data-act="closeModal">' + ICON.x + '</button></div>' +
+        uh +
+        '<div class="ing-add-row" style="margin-top:12px">' +
+        '<input id="unit-edit-qty" class="field-input" type="number" placeholder="포장 단위 (g), 예: 1000" />' +
+        '</div>' +
+        '<button type="button" class="ing-add-btn" style="width:100%;padding:11px;display:flex;align-items:center;justify-content:center;gap:6px" data-act="addProductUnit" data-id="' + esc(mu.id) + '">' + ICON.plus + '포장 단위 추가</button>' +
+        '<div class="ing-bulk-toggle-row"><button type="button" class="ing-bulk-toggle" data-act="toggleUnitBulkEdit">여러 개 한 번에 입력</button></div>' +
+        '<div id="unit-bulk-edit-wrap" class="hidden">' +
+        '<div class="bulk-hint">한 줄에 하나씩 그램(g) 숫자를 입력하세요.<br />예: 1000 / 500 / 2000</div>' +
+        '<textarea id="unit-edit-bulk" class="bulk-textarea" rows="4" placeholder="1000&#10;2000&#10;500"></textarea>' +
+        '<button type="button" class="submit-btn" style="margin-top:0" data-act="addBulkUnitsProduct" data-id="' + esc(mu.id) + '">일괄 추가</button>' +
         '</div>' +
         '</div></div>';
     } else if (state.modal === "adminTools") {
@@ -1030,6 +1072,23 @@
     if (wrap) wrap.innerHTML = renderPendingIngredientsRow();
   }
 
+  function renderPendingUnitsRow() {
+    if (!pendingUnits.length) return "";
+    var h = '<div class="ing-chip-list">';
+    pendingUnits.forEach(function (u, idx) {
+      h += '<span class="ing-chip">' + esc(u) + 'g' +
+        '<button type="button" data-act="removePendingUnit" data-idx="' + idx + '">' + ICON.x + '</button></span>';
+    });
+    h += '</div>';
+    return h;
+  }
+
+  // 등록 폼 전체를 다시 그리지 않고 포장 단위 칩 목록만 갱신 (입력값 유지)
+  function refreshPendingUnitsUI() {
+    var wrap = document.getElementById("pending-units-wrap");
+    if (wrap) wrap.innerHTML = renderPendingUnitsRow();
+  }
+
   // 원료 한 줄 파싱: "돼지고기\t35" / "돼지고기, 35" / "돼지고기 35" / "돼지고기 35%" / "돼지고기: 35%" 모두 지원
   function parseIngredientLine(line) {
     line = line.trim();
@@ -1055,6 +1114,22 @@
       .map(function (l) { return l.replace(/\r/g, ""); })
       .filter(function (l) { return l.trim().length > 0; })
       .map(parseIngredientLine)
+      .filter(Boolean);
+  }
+
+  // 포장 단위 한 줄 파싱: 그램(g) 숫자 하나. "1000" / "1000g" 모두 지원
+  function parseUnitLine(line) {
+    line = line.trim();
+    if (!line) return null;
+    var g = parseFloat(line.replace("g", "").trim());
+    return { g: g, valid: !isNaN(g) && g > 0 };
+  }
+
+  function parseUnitBulk(text) {
+    return text.split("\n")
+      .map(function (l) { return l.replace(/\r/g, ""); })
+      .filter(function (l) { return l.trim().length > 0; })
+      .map(parseUnitLine)
       .filter(Boolean);
   }
 
@@ -1090,6 +1165,18 @@
       h += '<textarea id="f-ing-bulk" class="bulk-textarea" rows="4" placeholder="돼지고기 35&#10;양배추 20&#10;당면 15"></textarea>';
       h += '<button type="button" class="submit-btn" style="margin-top:0" data-act="addBulkIngredientsPending">일괄 추가</button>';
       h += '</div>';
+      h += '<label class="field-label" style="margin-top:16px">포장 단위 (g, 선택, 여러 개 등록 가능)</label>';
+      h += '<div id="pending-units-wrap">' + renderPendingUnitsRow() + '</div>';
+      h += '<div class="ing-add-row">';
+      h += '<input id="f-unit-qty" class="field-input" type="number" placeholder="예: 1000" />';
+      h += '</div>';
+      h += '<button type="button" class="ing-add-btn" style="width:100%;padding:11px;display:flex;align-items:center;justify-content:center;gap:6px" data-act="addPendingUnit">' + ICON.plus + '포장 단위 추가</button>';
+      h += '<div class="ing-bulk-toggle-row"><button type="button" class="ing-bulk-toggle" data-act="toggleUnitBulkNew">여러 개 한 번에 입력</button></div>';
+      h += '<div id="unit-bulk-new-wrap" class="hidden">';
+      h += '<div class="bulk-hint">한 줄에 하나씩 그램(g) 숫자를 입력하세요.<br />예: 1000 / 500 / 2000</div>';
+      h += '<textarea id="f-unit-bulk" class="bulk-textarea" rows="4" placeholder="1000&#10;2000&#10;500"></textarea>';
+      h += '<button type="button" class="submit-btn" style="margin-top:0" data-act="addBulkUnitsPending">일괄 추가</button>';
+      h += '</div>';
       h += '<label class="field-label" style="margin-top:16px">제품 사진 (선택, 최대 ' + PHOTO_MAX + '장)</label>';
       h += '<div class="photo-file-row">';
       h += '<button type="button" class="photo-file-btn" data-act="pickNewPhotos">' + ICON.camera + '사진 선택</button>';
@@ -1118,7 +1205,8 @@
     type: ["구분", "종류"],
     weight: ["알당중량", "알당중량(g)", "중량", "중량(g)", "중량(그램)"],
     note: ["비고", "메모"],
-    ingredients: ["원료", "원료함량", "원료(함량)"]
+    ingredients: ["원료", "원료함량", "원료(함량)"],
+    units: ["포장단위", "포장", "포장(수량)"]
   };
 
   function mapExcelRow(row) {
@@ -1144,6 +1232,13 @@
       }).filter(function (x) { return x && x.name && !isNaN(x.percent); });
   }
 
+  function parseUnitsCell(text) {
+    if (!text) return [];
+    return String(text).split(",").map(function (s) { return s.trim().replace("g", ""); }).filter(Boolean)
+      .map(function (s) { return parseFloat(s); })
+      .filter(function (g) { return !isNaN(g) && g > 0; });
+  }
+
   function buildExcelRows(jsonRows) {
     return jsonRows.map(function (raw, idx) {
       var f = mapExcelRow(raw);
@@ -1154,6 +1249,7 @@
       var weightNum = parseFloat(f.weight);
       var noteRaw = f.note !== undefined ? String(f.note).trim() : "";
       var ingRaw = f.ingredients !== undefined ? String(f.ingredients).trim() : "";
+      var unitsRaw = f.units !== undefined ? String(f.units).trim() : "";
 
       var errors = [];
       if (!name) errors.push("제품명 없음");
@@ -1171,6 +1267,7 @@
         weightNum: weightNum,
         note: noteRaw !== "" ? noteRaw : undefined,
         ingredients: ingRaw !== "" ? parseIngredientsCell(ingRaw) : undefined,
+        units: unitsRaw !== "" ? parseUnitsCell(unitsRaw) : undefined,
         matchedProduct: matchedProduct || null,
         action: matchedProduct ? "update" : "new",
         valid: errors.length === 0,
@@ -1180,7 +1277,7 @@
   }
 
   function renderExcelTab() {
-    var h = '<div class="bulk-hint">엑셀 파일(.xlsx)을 업로드해서 여러 제품을 한 번에 등록·수정할 수 있어요.<br />열 이름: <strong>id(선택) · 업체명 · 제품명 · 구분 · 알당중량 · 비고 · 원료</strong><br /><strong>id가 기존 제품과 일치하면 수정</strong>, 없으면 신규 등록돼요. 원료 칸은 &quot;돼지고기:35,양배추:20&quot; 형식으로 입력하세요.</div>';
+    var h = '<div class="bulk-hint">엑셀 파일(.xlsx)을 업로드해서 여러 제품을 한 번에 등록·수정할 수 있어요.<br />열 이름: <strong>id(선택) · 업체명 · 제품명 · 구분 · 알당중량 · 비고 · 원료 · 포장단위</strong><br /><strong>id가 기존 제품과 일치하면 수정</strong>, 없으면 신규 등록돼요. 원료 칸은 &quot;돼지고기:35,양배추:20&quot;, 포장단위 칸은 그램(g) 숫자를 콤마로 구분해 &quot;1000,2000,500&quot; 형식으로 입력하세요.</div>';
     h += '<div class="excel-action-row">';
     h += '<button type="button" class="excel-action-btn" data-act="downloadExcelTemplate">' + ICON.download + '템플릿 받기</button>';
     h += '<button type="button" class="excel-action-btn" data-act="exportExcelCurrent">' + ICON.download + '현재 데이터 받기</button>';
@@ -1282,6 +1379,7 @@
       weight: parseFloat(weightRaw),
       note: (document.getElementById("f-note").value || "").trim(),
       ingredients: pendingIngredients.slice(),
+      units: pendingUnits.slice(),
       photos: pendingPhotos.map(function (ph) { return ph.data; })
     };
     var btn = document.querySelector('[data-act="submitSingle"]');
@@ -1293,6 +1391,7 @@
     state.modal = null;
     pendingPhotos = [];
     pendingIngredients = [];
+    pendingUnits = [];
     toast('"' + p.name + '" 추가됨');
     render(); renderModal();
   }
@@ -1305,7 +1404,7 @@
     var btn = document.querySelector('[data-act="submitBulk"]');
     if (btn) { btn.disabled = true; btn.textContent = "저장 중..."; }
     var newProducts = valid.map(function (r) {
-      return { id: nextId(), vendor: r.vendor, name: r.name, type: r.type, weight: r.weight, note: r.note, ingredients: [], photos: [] };
+      return { id: nextId(), vendor: r.vendor, name: r.name, type: r.type, weight: r.weight, note: r.note, ingredients: [], photos: [], units: [] };
     });
     var results = await Promise.all(newProducts.map(function (p) { return saveProduct(p); }));
     if (btn) { btn.disabled = false; btn.textContent = "일괄 등록"; }
@@ -1488,7 +1587,7 @@
     }
     if (act === "exitAdmin") { state.mode = "search"; state.selectedIds = {}; state.query = ""; render(); return; }
     if (act === "clearSearch") { state.query = ""; state._focusSearch = true; render(); return; }
-    if (act === "openAdd") { state.modal = "add"; state.addMode = "single"; pendingPhotos = []; pendingIngredients = []; state.excelRows = null; renderModal(); return; }
+    if (act === "openAdd") { state.modal = "add"; state.addMode = "single"; pendingPhotos = []; pendingIngredients = []; pendingUnits = []; state.excelRows = null; renderModal(); return; }
     if (act === "tabSingle") { state.addMode = "single"; renderModal(); return; }
     if (act === "tabBulk") { state.addMode = "bulk"; renderModal(); setTimeout(updateBulkPreview, 0); return; }
     if (act === "tabExcel") { state.addMode = "excel"; renderModal(); return; }
@@ -1650,6 +1749,99 @@
       }
       return;
     }
+    if (act === "manageUnits") {
+      state.viewingId = actEl.getAttribute("data-id");
+      state.modal = "manageUnits";
+      renderModal();
+      return;
+    }
+    if (act === "addProductUnit") {
+      var uid = actEl.getAttribute("data-id");
+      var uQty = document.getElementById("unit-edit-qty");
+      var uqty = parseFloat(uQty && uQty.value);
+      if (isNaN(uqty) || uqty <= 0) { toast("포장 단위(g)를 입력해주세요."); return; }
+      var up = state.products.filter(function (x) { return x.id === uid; })[0];
+      if (up) {
+        up.units = up.units || [];
+        up.units.push(uqty);
+        saveProduct(up).then(function (ok) {
+          if (ok) toast('"' + up.name + '"에 포장 단위 추가됨');
+          renderModal();
+          render();
+        });
+      }
+      return;
+    }
+    if (act === "removeProductUnit") {
+      var ruid = actEl.getAttribute("data-id");
+      var ruidx = parseInt(actEl.getAttribute("data-idx"), 10);
+      var rup = state.products.filter(function (x) { return x.id === ruid; })[0];
+      if (rup && rup.units) {
+        var removedUnit = rup.units.splice(ruidx, 1);
+        saveProduct(rup).then(function (ok) {
+          if (!ok) rup.units.splice(ruidx, 0, removedUnit[0]);
+          renderModal();
+          render();
+        });
+      }
+      return;
+    }
+    if (act === "addPendingUnit") {
+      var pnQty = document.getElementById("f-unit-qty");
+      var puqty = parseFloat(pnQty && pnQty.value);
+      if (isNaN(puqty) || puqty <= 0) { toast("포장 단위(g)를 입력해주세요."); return; }
+      pendingUnits.push(puqty);
+      if (pnQty) pnQty.value = "";
+      refreshPendingUnitsUI();
+      return;
+    }
+    if (act === "removePendingUnit") {
+      var puridx = parseInt(actEl.getAttribute("data-idx"), 10);
+      pendingUnits.splice(puridx, 1);
+      refreshPendingUnitsUI();
+      return;
+    }
+    if (act === "toggleUnitBulkNew") {
+      var uwrapN = document.getElementById("unit-bulk-new-wrap");
+      if (uwrapN) uwrapN.classList.toggle("hidden");
+      return;
+    }
+    if (act === "toggleUnitBulkEdit") {
+      var uwrapE = document.getElementById("unit-bulk-edit-wrap");
+      if (uwrapE) uwrapE.classList.toggle("hidden");
+      return;
+    }
+    if (act === "addBulkUnitsPending") {
+      var utaN = document.getElementById("f-unit-bulk");
+      var urowsN = parseUnitBulk(utaN ? utaN.value : "");
+      var uvalidN = urowsN.filter(function (r) { return r.valid; });
+      if (!uvalidN.length) { toast("추가할 포장 단위가 없어요. 형식을 확인해주세요."); return; }
+      uvalidN.forEach(function (r) { pendingUnits.push(r.g); });
+      if (utaN) utaN.value = "";
+      refreshPendingUnitsUI();
+      var uskippedN = urowsN.length - uvalidN.length;
+      toast(uvalidN.length + "개 추가됨" + (uskippedN ? ", " + uskippedN + "개는 형식 오류로 건너뜀" : ""));
+      return;
+    }
+    if (act === "addBulkUnitsProduct") {
+      var ubpid = actEl.getAttribute("data-id");
+      var utaE = document.getElementById("unit-edit-bulk");
+      var urowsE = parseUnitBulk(utaE ? utaE.value : "");
+      var uvalidE = urowsE.filter(function (r) { return r.valid; });
+      if (!uvalidE.length) { toast("추가할 포장 단위가 없어요. 형식을 확인해주세요."); return; }
+      var ubp = state.products.filter(function (x) { return x.id === ubpid; })[0];
+      if (ubp) {
+        ubp.units = ubp.units || [];
+        uvalidE.forEach(function (r) { ubp.units.push(r.g); });
+        var uskippedE = urowsE.length - uvalidE.length;
+        saveProduct(ubp).then(function (ok) {
+          if (ok) toast(uvalidE.length + "개 추가됨" + (uskippedE ? ", " + uskippedE + "개는 형식 오류로 건너뜀" : ""));
+          renderModal();
+          render();
+        });
+      }
+      return;
+    }
     if (act === "pickExcelFile") {
       var fe = document.getElementById("f-excel");
       if (fe) fe.click();
@@ -1658,7 +1850,7 @@
     if (act === "downloadExcelTemplate") {
       if (!window.XLSX) { toast("엑셀 기능을 불러오지 못했어요. 인터넷 연결을 확인해주세요."); return; }
       var tmplData = [
-        { "id": "", "업체명": "롯데마트", "제품명": "매운 김치왕만두", "구분": "만두", "알당중량": 32, "비고": "국내산 김치 사용", "원료": "돼지고기:35,양배추:20" }
+        { "id": "", "업체명": "롯데마트", "제품명": "매운 김치왕만두", "구분": "만두", "알당중량": 32, "비고": "국내산 김치 사용", "원료": "돼지고기:35,양배추:20", "포장단위": "1000,2000" }
       ];
       var tmplWs = XLSX.utils.json_to_sheet(tmplData);
       var tmplWb = XLSX.utils.book_new();
@@ -1670,7 +1862,8 @@
       if (!window.XLSX) { toast("엑셀 기능을 불러오지 못했어요. 인터넷 연결을 확인해주세요."); return; }
       var curData = state.products.map(function (p) {
         var ingStr = (p.ingredients || []).map(function (ing) { return ing.name + ":" + ing.percent; }).join(",");
-        return { "id": p.id, "업체명": p.vendor, "제품명": p.name, "구분": p.type, "알당중량": p.weight, "비고": p.note || "", "원료": ingStr };
+        var unitStr = (p.units || []).join(",");
+        return { "id": p.id, "업체명": p.vendor, "제품명": p.name, "구분": p.type, "알당중량": p.weight, "비고": p.note || "", "원료": ingStr, "포장단위": unitStr };
       });
       var curWs = XLSX.utils.json_to_sheet(curData);
       var curWb = XLSX.utils.book_new();
@@ -1696,12 +1889,14 @@
             mp2.weight = row.weightNum;
             if (row.note !== undefined) mp2.note = row.note;
             if (row.ingredients !== undefined) mp2.ingredients = row.ingredients;
+            if (row.units !== undefined) mp2.units = row.units;
             toSave.push({ product: mp2, isNew: false });
           } else {
             var np = {
               id: nextId(), vendor: row.vendor || "미기입", name: row.name, type: row.type,
               weight: row.weightNum, note: row.note !== undefined ? row.note : "",
-              ingredients: row.ingredients !== undefined ? row.ingredients : [], photos: []
+              ingredients: row.ingredients !== undefined ? row.ingredients : [], photos: [],
+              units: row.units !== undefined ? row.units : []
             };
             toSave.push({ product: np, isNew: true });
           }
@@ -1814,7 +2009,8 @@
             return {
               id: String(p.id), vendor: p.vendor || "미기입", name: p.name,
               type: p.type || "만두", weight: parseFloat(p.weight) || 0,
-              note: p.note || "", ingredients: p.ingredients || [], photos: p.photos || []
+              note: p.note || "", ingredients: p.ingredients || [], photos: p.photos || [],
+              units: p.units || []
             };
           });
           if (!cleaned.length) { toast("파일 안에 복구할 제품이 없어요."); return; }
