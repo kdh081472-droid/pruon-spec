@@ -704,7 +704,10 @@
     list.forEach(function (p) {
       h += '<div class="card">';
       h += '<div class="card-top"><span class="card-name">' + esc(p.name) + '</span><span class="card-vendor">' + esc(p.vendor) + '</span></div>';
-      h += '<div class="spec-row"><span class="spec-tag">' + esc(p.type) + '</span><span class="spec-weight">' + esc(p.weight) + 'g / 알</span>';
+      h += '<div class="spec-row"><span class="spec-tag">' + esc(p.type) + '</span>';
+      if (p.weight != null && p.weight !== "") {
+        h += '<span class="spec-weight">' + esc(p.weight) + 'g / 알</span>';
+      }
       if (p.units && p.units.length) {
         h += '<span class="spec-units">' + p.units.map(function (u) { return esc(u) + 'g'; }).join(', ') + '</span>';
       }
@@ -750,7 +753,7 @@
       TYPES.forEach(function (t) { h += '<option value="' + esc(t) + '"' + (p.type === t ? " selected" : "") + '>' + esc(t) + '</option>'; });
       h += '</select>';
       h += '<span class="mcard-meta-sep">·</span>';
-      h += '<input type="number" class="mcard-meta-input mcard-weight-input" data-field-id="' + esc(p.id) + '" data-field="weight" value="' + esc(p.weight) + '" />';
+      h += '<input type="number" class="mcard-meta-input mcard-weight-input" data-field-id="' + esc(p.id) + '" data-field="weight" value="' + esc(p.weight == null ? "" : p.weight) + '" />';
       h += '<span class="mcard-meta-unit">g</span>';
       h += '</div></div></div>';
       h += '<div class="mcard-actions-row">';
@@ -1151,7 +1154,7 @@
       h += '<label class="field-label">구분 (만두/김말이/볶음밥)</label><select id="f-type" class="field-input">';
       TYPES.forEach(function (t) { h += '<option value="' + t + '">' + t + '</option>'; });
       h += '</select>';
-      h += '<label class="field-label">알당중량 (g)</label><input id="f-weight" class="field-input" type="number" placeholder="예: 18" />';
+      h += '<label class="field-label">알당중량 (g, 선택 — 볶음밥 등 낱개 개념이 없으면 비워두세요)</label><input id="f-weight" class="field-input" type="number" placeholder="예: 18" />';
       h += '<label class="field-label">비고 (선택)</label><input id="f-note" class="field-input" placeholder="예: 국내산 김치 사용, 찜 조리 전용" />';
       h += '<label class="field-label">주요 원료 함량 (선택)</label>';
       h += '<div id="pending-ingredients-wrap">' + renderPendingIngredientsRow() + '</div>';
@@ -1248,14 +1251,15 @@
       var vendor = f.vendor !== undefined ? String(f.vendor).trim() : "";
       var name = f.name !== undefined ? String(f.name).trim() : "";
       var type = f.type !== undefined ? String(f.type).trim() : "";
-      var weightNum = parseFloat(f.weight);
+      var weightRaw = f.weight !== undefined ? String(f.weight).trim() : "";
+      var weightNum = weightRaw === "" ? null : parseFloat(weightRaw);
       var noteRaw = f.note !== undefined ? String(f.note).trim() : "";
       var ingRaw = f.ingredients !== undefined ? String(f.ingredients).trim() : "";
       var unitsRaw = f.units !== undefined ? String(f.units).trim() : "";
 
       var errors = [];
       if (!name) errors.push("제품명 없음");
-      if (!weightNum || isNaN(weightNum)) errors.push("중량 숫자 아님");
+      if (weightRaw !== "" && isNaN(weightNum)) errors.push("중량 숫자 아님");
       if (TYPES.indexOf(type) === -1) errors.push('구분 "' + (type || "-") + '" 인식 불가');
 
       var matchedProduct = idRaw ? state.products.filter(function (x) { return x.id === idRaw; })[0] : null;
@@ -1302,7 +1306,7 @@
         h += '<div class="bulk-row' + (r.valid ? "" : " err") + '"><span class="bulk-num">' + r.rowIndex + '</span>';
         h += '<span class="bulk-text">' + (r.valid ? (r.action === "update" ? "[수정] " : "[신규] ") : "") +
           esc(r.vendor || "-") + ' · ' + esc(r.name || "(제품명 없음)") + ' · ' + esc(r.type || "-") +
-          (isNaN(r.weightNum) ? "" : " · " + esc(r.weightNum) + "g") + '</span>';
+          (r.weightNum == null || isNaN(r.weightNum) ? "" : " · " + esc(r.weightNum) + "g") + '</span>';
         if (!r.valid) h += '<span class="bulk-err-text">' + esc(r.errors.join(", ")) + '</span>';
         h += '</div>';
       });
@@ -1322,12 +1326,12 @@
         var cols = line.indexOf("\t") !== -1 ? line.split("\t") : line.split(",");
         cols = cols.map(function (c) { return (c || "").trim(); });
         var vendor = cols[0], name = cols[1], typeRaw = cols[2], weightRaw = cols[3], noteRaw = cols[4];
-        var weight = parseFloat(weightRaw);
+        var weight = weightRaw ? parseFloat(weightRaw) : null;
         var typeMatch = TYPES.indexOf(typeRaw) !== -1 ? typeRaw : null;
         var errors = [];
         if (!name) errors.push("제품명 없음");
         if (!typeMatch) errors.push('구분 "' + (typeRaw || "-") + '" 인식 불가');
-        if (!weightRaw || isNaN(weight)) errors.push("중량 숫자 아님");
+        if (weightRaw && isNaN(weight)) errors.push("중량 숫자 아님");
         return {
           rowIndex: idx + 1,
           vendor: vendor || "미기입",
@@ -1356,7 +1360,7 @@
     var h = '<div class="bulk-preview-header">미리보기 — 총 ' + rows.length + '행 중 ' + valid.length + '행 등록 가능</div><div class="bulk-list">';
     rows.forEach(function (r) {
       h += '<div class="bulk-row' + (r.valid ? "" : " err") + '"><span class="bulk-num">' + r.rowIndex + '</span>';
-      h += '<span class="bulk-text">' + esc(r.vendor) + ' · ' + esc(r.name || "(제품명 없음)") + ' · ' + esc(r.type || "-") + ' · ' + (isNaN(r.weight) ? "-" : esc(r.weight) + "g") + (r.note ? ' · 비고: ' + esc(r.note) : "") + '</span>';
+      h += '<span class="bulk-text">' + esc(r.vendor) + ' · ' + esc(r.name || "(제품명 없음)") + ' · ' + esc(r.type || "-") + ' · ' + (r.weight == null || isNaN(r.weight) ? "-" : esc(r.weight) + "g") + (r.note ? ' · 비고: ' + esc(r.note) : "") + '</span>';
       if (!r.valid) h += '<span class="bulk-err-text">' + esc(r.errors.join(", ")) + '</span>';
       h += '</div>';
     });
@@ -1372,13 +1376,14 @@
   async function submitSingle() {
     var name = (document.getElementById("f-name").value || "").trim();
     var weightRaw = (document.getElementById("f-weight").value || "").trim();
-    if (!name || !weightRaw) { toast("제품명과 알당중량을 입력해주세요."); return; }
+    if (!name) { toast("제품명을 입력해주세요."); return; }
+    if (weightRaw && isNaN(parseFloat(weightRaw))) { toast("알당중량은 숫자로 입력해주세요."); return; }
     var p = {
       id: nextId(),
       vendor: (document.getElementById("f-vendor").value || "").trim() || "미기입",
       name: name,
       type: document.getElementById("f-type").value,
-      weight: parseFloat(weightRaw),
+      weight: weightRaw ? parseFloat(weightRaw) : null,
       note: (document.getElementById("f-note").value || "").trim(),
       ingredients: pendingIngredients.slice(),
       units: pendingUnits.slice(),
@@ -2010,7 +2015,7 @@
           var cleaned = parsed.filter(function (p) { return p && p.id && p.name; }).map(function (p) {
             return {
               id: String(p.id), vendor: p.vendor || "미기입", name: p.name,
-              type: p.type || "만두", weight: parseFloat(p.weight) || 0,
+              type: p.type || "만두", weight: (p.weight === null || p.weight === undefined || p.weight === "") ? null : (isNaN(parseFloat(p.weight)) ? null : parseFloat(p.weight)),
               note: p.note || "", ingredients: p.ingredients || [], photos: p.photos || [],
               units: p.units || []
             };
@@ -2173,14 +2178,15 @@
           });
         }
       } else if (field === "weight") {
-        var wv = parseFloat(e.target.value);
-        if (isNaN(wv) || wv <= 0) { toast("알당중량은 숫자로 입력해주세요."); e.target.value = fp.weight; return; }
-        e.target.value = wv;
+        var wraw = (e.target.value || "").trim();
+        var wv = wraw === "" ? null : parseFloat(wraw);
+        if (wraw !== "" && (isNaN(wv) || wv <= 0)) { toast("알당중량은 숫자로 입력해주세요."); e.target.value = fp.weight == null ? "" : fp.weight; return; }
+        e.target.value = wv == null ? "" : wv;
         if (fp.weight !== wv) {
           var prevWeight = fp.weight;
           fp.weight = wv;
           saveProduct(fp).then(function (ok) {
-            if (ok) toast("알당중량 저장됨"); else { fp.weight = prevWeight; e.target.value = prevWeight; }
+            if (ok) toast("알당중량 저장됨"); else { fp.weight = prevWeight; e.target.value = prevWeight == null ? "" : prevWeight; }
           });
         }
       }
