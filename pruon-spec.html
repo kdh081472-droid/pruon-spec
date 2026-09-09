@@ -226,7 +226,7 @@
   var sessionGatePw = null;   // 입장 비번 확인 후 서버 호출용으로 기억
   var sessionAdminPw = null;  // 관리자 비번 확인 후 서버 호출용으로 기억
   var MAX_GATE_FAILS = 5;
-  var TYPES = ["만두", "김말이"];
+  var TYPES = ["만두", "김말이", "볶음밥"];
 
   // ---- 아이콘 (인라인 SVG) ----
   var ICON = {
@@ -1148,7 +1148,7 @@
     if (state.addMode === "single") {
       h += '<label class="field-label">업체명</label><input id="f-vendor" class="field-input" placeholder="예: 롯데마트" />';
       h += '<label class="field-label">제품명</label><input id="f-name" class="field-input" placeholder="예: 매운 김치왕만두" />';
-      h += '<label class="field-label">구분 (만두/김말이)</label><select id="f-type" class="field-input">';
+      h += '<label class="field-label">구분 (만두/김말이/볶음밥)</label><select id="f-type" class="field-input">';
       TYPES.forEach(function (t) { h += '<option value="' + t + '">' + t + '</option>'; });
       h += '</select>';
       h += '<label class="field-label">알당중량 (g)</label><input id="f-weight" class="field-input" type="number" placeholder="예: 18" />';
@@ -1188,7 +1188,7 @@
       h += '<input type="file" id="f-photos" class="hidden" accept="image/*" multiple />';
       h += '<button class="submit-btn" data-act="submitSingle">등록하기</button>';
     } else if (state.addMode === "bulk") {
-      h += '<div class="bulk-hint">엑셀에서 <strong>업체명 · 제품명 · 만두/김말이 · 알당중량 · 비고</strong> 순서로 범위를 복사해 붙여넣으세요. (비고는 마지막 열, 비워둬도 됨)<br />구분 칸은 <strong>만두</strong> 또는 <strong>김말이</strong>로 정확히 입력되어야 인식돼요.</div>';
+      h += '<div class="bulk-hint">엑셀에서 <strong>업체명 · 제품명 · 만두/김말이/볶음밥 · 알당중량 · 비고</strong> 순서로 범위를 복사해 붙여넣으세요. (비고는 마지막 열, 비워둬도 됨)<br />구분 칸은 <strong>만두</strong>, <strong>김말이</strong>, <strong>볶음밥</strong> 중 하나로 정확히 입력되어야 인식돼요.</div>';
       h += '<textarea id="bulk-text" class="bulk-textarea" rows="6" placeholder="롯데마트&#9;매운김치왕만두&#9;만두&#9;32&#9;국내산 김치"></textarea>';
       h += '<div id="bulk-preview"></div>';
       h += '<button class="submit-btn" data-act="submitBulk">일괄 등록</button>';
