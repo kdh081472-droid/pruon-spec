@@ -1,30 +1,27 @@
-// 최소한의 서비스워커: 앱을 "홈 화면에 추가"할 수 있게 해주는 용도
-// (데이터는 항상 Supabase에서 최신으로 가져오므로 캐싱은 최소한으로만 사용)
-const CACHE_NAME = "pruon-spec-shell-v1";
+// 온라인이면 항상 최신 파일을 먼저 받아오고, 인터넷이 없을 때만
+// 예전에 저장해둔 캐시로 대신 보여줍니다(네트워크 우선 방식).
+// 이렇게 해야 나중에 index.html을 새로 올렸을 때 캐시에 발목 잡히지 않아요.
+const CACHE = "tuk-recall-v2";
+const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-180.png", "./icon-512.png"];
 
-self.addEventListener("install", (event) => {
+self.addEventListener("install", (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
   self.skipWaiting();
 });
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+self.addEventListener("activate", (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
   );
   self.clients.claim();
 });
-
-// 네트워크 우선, 실패하면 캐시(오프라인 대비) — 데이터는 항상 최신을 우선함
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  event.respondWith(
-    fetch(event.request)
+self.addEventListener("fetch", (e) => {
+  e.respondWith(
+    fetch(e.request)
       .then((res) => {
-        const resClone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copy));
         return res;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(e.request).then((hit) => hit || caches.match("./index.html")))
   );
 });
